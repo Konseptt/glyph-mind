@@ -1,1589 +1,2294 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>GLYPHMIND — Egyptian N-Back Memory Test</title>
-<!-- UI fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
-<!-- Real Egyptian Hieroglyphs Unicode font -->
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Egyptian+Hieroglyphs&display=swap" rel="stylesheet">
-<style>
-/* ─── Reset ─────────────────────────────────────────────── */
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Cinzel',serif}
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>GLYPHMIND — Egyptian N-Back Memory Test</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Egyptian+Hieroglyphs&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Reset ─────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
 
-/* ─── 3-D Canvas ─────────────────────────────────────────── */
-#c{display:block;width:100%;height:100%}
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Cinzel', serif;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent
+    }
 
-/* ─── Gun overlay — bottom-centre, FPS style ─────────────── */
-#gun {
-  position: fixed;
-  bottom: 0; left: 50%; transform: translateX(-50%);
-  width: clamp(260px, 38vw, 520px);
-  height: clamp(160px, 22vw, 320px);
-  pointer-events: none; z-index: 6; display: none;
-}
-#gun canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* ─── 3-D Canvas ─────────────────────────────────────────── */
+    #c {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      outline: none
+    }
 
-/* ─── Pointer-lock indicator ─────────────────────────────── */
-#lockhint {
-  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
-  display: none; z-index: 12; pointer-events: all; cursor: pointer;
-  text-align: center;
-}
-#lockhint.show { display: block; }
-#lockhint p {
-  font-family: 'Cinzel', serif; font-size: clamp(9px, 1vw, 11px);
-  color: rgba(245, 194, 82, .58); letter-spacing: .2em;
-  animation: blink 2s ease-in-out infinite;
-}
+    /* ─── Gun overlay — bottom-centre, FPS style ─────────────── */
+    #gun {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(260px, 38vw, 520px);
+      height: clamp(160px, 22vw, 320px);
+      pointer-events: none;
+      z-index: 6;
+      display: none;
+    }
 
-/* ─── HUD ────────────────────────────────────────────────── */
-#hud{position:fixed;inset:0;pointer-events:none;user-select:none;z-index:5}
-#xh{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px}
-#xh::before,#xh::after{content:'';position:absolute;background:rgba(245,194,82,.84)}
-#xh::before{width:100%;height:1.5px;top:50%;margin-top:-.75px}
-#xh::after{width:1.5px;height:100%;left:50%;margin-left:-.75px}
-#xring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:28px;height:28px;border:1.5px solid rgba(245,194,82,.28);border-radius:50%;transition:all .14s}
-#xring.aim{width:44px;height:44px;border-color:rgba(245,194,82,.72)}
-#nlevel{position:absolute;top:18px;left:20px;font-size:clamp(13px,2vw,22px);
-  color:rgba(245,194,82,1);letter-spacing:.18em;text-shadow:0 0 16px rgba(245,142,26,.9)}
-#bestlv{position:absolute;top:48px;left:20px;font-size:clamp(9px,1.2vw,13px);
-  color:rgba(175,122,42,.68);letter-spacing:.13em}
-#seqbox{position:absolute;top:18px;right:20px;text-align:right;max-width:250px;
-  font-size:clamp(9px,1.1vw,13px);color:rgba(200,150,54,.9);letter-spacing:.07em;line-height:1.9}
-#prompt{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);
-  font-size:clamp(9px,1.3vw,14px);letter-spacing:.18em;color:rgba(200,148,52,.9);
-  text-shadow:0 0 12px rgba(245,142,26,.55);text-align:center;pointer-events:none;white-space:nowrap}
+    #gun canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
 
-/* ─── Research stats bar (bottom-right) ─────────────────── */
-#statsbar{position:fixed;bottom:20px;right:20px;text-align:right;
-  font-size:clamp(7px,.85vw,10px);letter-spacing:.12em;color:rgba(138,98,30,.6);
-  pointer-events:none;z-index:5;line-height:1.9;display:none}
+    /* ─── Pointer-lock indicator ─────────────────────────────── */
+    #lockhint {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 12;
+      pointer-events: all;
+      cursor: pointer;
+      text-align: center;
+    }
 
-/* ─── Bottom answer bar ──────────────────────────────────── */
-#abar{position:fixed;bottom:0;left:0;right:0;display:none;
-  justify-content:center;align-items:flex-end;padding:0 10px 10px;gap:8px;z-index:8;pointer-events:none}
-#abar.show{display:flex;pointer-events:all}
-.ab{flex:1;max-width:115px;background:rgba(12,8,2,.95);border:1.5px solid rgba(160,108,28,.65);
-  color:rgba(242,180,60,.9);font-family:'Cinzel',serif;font-size:clamp(8px,1vw,11px);
-  letter-spacing:.11em;padding:8px 8px 10px;cursor:pointer;text-align:center;
-  transition:background .12s,border-color .14s,transform .1s;line-height:1.4}
-.ab:hover,.ab:focus{background:rgba(34,22,6,.98);border-color:rgba(242,180,60,.82);
-  transform:translateY(-3px);outline:2px solid rgba(242,180,60,.48)}
-.ab canvas{display:block;margin:0 auto 4px}
-.ab .al{display:none;font-size:.82em;color:rgba(160,110,36,.72);margin-top:2px}
-.ab .ak{display:none;font-size:.75em;color:rgba(242,180,60,.5);margin-top:1px}
-/* CSS-driven accessibility modes */
-body.acc-large .ab{max-width:140px;padding:12px 12px 14px}
-body.acc-labels .ab .al{display:block}
-body.acc-keys   .ab .ak{display:block}
-body.acc-hc     {filter:contrast(1.4) saturate(1.2)}
+    #lockhint.show {
+      display: block;
+    }
 
-/* ─── Side shortcut panel ────────────────────────────────── */
-#spanel{position:fixed;right:14px;top:50%;transform:translateY(-50%);
-  display:none;flex-direction:column;gap:6px;z-index:8;pointer-events:none}
-#spanel.show{display:flex;pointer-events:all}
-.sp{width:72px;background:rgba(12,8,2,.94);border:1.5px solid rgba(160,108,28,.58);
-  color:rgba(242,180,60,.88);font-family:'Cinzel',serif;font-size:clamp(7px,.9vw,10px);
-  letter-spacing:.1em;padding:6px 5px 8px;cursor:pointer;text-align:center;transition:background .12s}
-.sp:hover,.sp:focus{background:rgba(34,22,6,.98);outline:2px solid rgba(242,180,60,.42)}
-.sp canvas{display:block;margin:0 auto 3px}
-.sp .sk{display:block;font-size:.78em;color:rgba(242,180,60,.5);margin-top:2px}
+    #lockhint p {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(9px, 1vw, 11px);
+      color: rgba(245, 194, 82, .58);
+      letter-spacing: .2em;
+      animation: blink 2s ease-in-out infinite;
+    }
 
-/* ─── In-arena accessibility quick bar (bottom-left) ────── */
-#accbar{position:fixed;left:14px;bottom:50px;display:none;
-  flex-direction:column;gap:4px;z-index:8;pointer-events:none}
-#accbar.show{display:flex;pointer-events:all}
-.acb{background:rgba(12,8,2,.88);border:1.5px solid rgba(160,108,28,.5);
-  color:rgba(242,180,60,.78);font-family:'Cinzel',serif;font-size:clamp(7px,.84vw,10px);
-  letter-spacing:.12em;padding:5px 9px;cursor:pointer;transition:background .12s,border-color .12s;
-  white-space:nowrap}
-.acb:hover,.acb:focus{background:rgba(34,22,6,.96);border-color:rgba(242,180,60,.66);outline:none}
-.acb.on{border-color:rgba(242,180,60,.9);color:rgba(242,180,60,1);background:rgba(34,22,6,.9)}
+    /* ─── HUD ────────────────────────────────────────────────── */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      user-select: none;
+      z-index: 5
+    }
 
-/* ─── Pause menu ─────────────────────────────────────────── */
-#pm{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
-  justify-content:flex-start;overflow-y:auto;padding:40px 16px;z-index:30;background:rgba(4,2,1,.94)}
-#pm.show{display:flex}
-.pt{font-family:'Cinzel Decorative',serif;font-size:clamp(18px,4.5vw,50px);
-  color:rgba(245,192,82,.96);letter-spacing:.14em;text-shadow:0 0 28px rgba(245,142,26,.7);margin-bottom:6px}
-.ps{font-size:clamp(8px,1.1vw,12px);color:rgba(132,92,26,.6);letter-spacing:.3em;margin-bottom:32px}
-.pb{background:transparent;border:1.5px solid rgba(160,108,28,.52);
-  color:rgba(210,156,46,.92);font-family:'Cinzel',serif;font-size:clamp(10px,1.4vw,14px);
-  letter-spacing:.18em;padding:11px 40px;cursor:pointer;width:300px;max-width:88vw;
-  margin:4px 0;transition:background .12s,border-color .12s}
-.pb:hover,.pb:focus{background:rgba(34,22,6,.9);border-color:rgba(242,180,60,.7);outline:none}
-.pdiv{width:300px;max-width:88vw;height:1px;background:rgba(160,108,28,.24);margin:14px 0}
-.plbl{font-size:clamp(8px,1vw,11px);color:rgba(132,92,26,.65);letter-spacing:.18em;
-  margin-bottom:9px;text-align:center}
-.pnrow{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.pnv{font-size:clamp(15px,2.8vw,24px);color:rgba(245,192,82,1);min-width:36px;text-align:center}
-.pnb{background:rgba(18,12,4,.9);border:1.5px solid rgba(160,108,28,.5);
-  color:rgba(210,156,46,.9);font-family:'Cinzel',serif;font-size:17px;
-  width:36px;height:36px;cursor:pointer;transition:background .1s}
-.pnb:hover{background:rgba(42,28,8,.9)}
-.trow{display:flex;align-items:center;justify-content:space-between;
-  width:300px;max-width:88vw;margin:5px 0}
-.tlbl{font-size:clamp(8px,1vw,11px);color:rgba(178,130,44,.74);letter-spacing:.14em}
-.tog{position:relative;width:38px;height:20px;background:rgba(18,12,4,.9);
-  border:1.5px solid rgba(160,108,28,.5);border-radius:10px;cursor:pointer;transition:background .2s}
-.tog.on{background:rgba(120,82,18,.72)}
-.tog::after{content:'';position:absolute;width:14px;height:14px;top:2px;left:2px;
-  border-radius:50%;background:rgba(160,108,28,.62);transition:transform .2s}
-.tog.on::after{transform:translateX(18px);background:rgba(242,180,60,.92)}
-.pidinput{background:rgba(12,8,2,.92);border:1.5px solid rgba(160,108,28,.5);
-  color:rgba(245,192,82,.9);font-family:'Cinzel',serif;font-size:clamp(10px,1.3vw,13px);
-  letter-spacing:.13em;padding:9px 14px;width:300px;max-width:88vw;outline:none;margin-bottom:4px}
+    #xh {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px
+    }
 
-/* ─── Overlays ───────────────────────────────────────────── */
-#fade{position:fixed;inset:0;background:#000;opacity:1;z-index:10;pointer-events:none;transition:opacity .62s}
-#rfl{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  z-index:15;pointer-events:none;opacity:0;transition:opacity .15s}
-#rfl.show{opacity:1}
-#rfl span{font-family:'Cinzel Decorative',serif;font-weight:900;
-  font-size:clamp(26px,7vw,76px);letter-spacing:.06em;text-shadow:0 0 58px currentColor}
-#rfl.ok span{color:rgba(46,220,90,1)}
-#rfl.no span{color:rgba(220,46,20,1)}
+    #xh::before,
+    #xh::after {
+      content: '';
+      position: absolute;
+      background: rgba(245, 194, 82, .84)
+    }
 
-/* ─── Tutorial overlay ───────────────────────────────────── */
-#tut{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
-  justify-content:center;z-index:25;background:rgba(4,2,1,.97)}
-#tut.show{display:flex}
-#tut-inner{display:flex;align-items:flex-start;gap:clamp(14px,3vw,46px);
-  max-width:840px;width:92vw;padding:0 16px}
-#tut-npc{flex-shrink:0}
-#tut-npc canvas{display:block}
-#tut-bubble{flex:1;min-height:220px;display:flex;flex-direction:column;justify-content:space-between}
-.tut-who{font-size:clamp(8px,1vw,11px);letter-spacing:.26em;color:rgba(160,108,28,.68);margin-bottom:8px}
-.tut-txt{font-size:clamp(11px,1.5vw,16px);line-height:1.85;color:rgba(218,170,58,.9);
-  letter-spacing:.04em;border-left:2px solid rgba(160,108,28,.36);padding-left:18px;flex:1}
-.tut-txt b{color:rgba(245,192,82,1)}
-.tut-nav{display:flex;align-items:center;justify-content:space-between;margin-top:20px;gap:10px}
-.tut-dots{display:flex;gap:7px;align-items:center}
-.tut-dot{width:7px;height:7px;border-radius:50%;background:rgba(160,108,28,.32);transition:background .2s}
-.tut-dot.on{background:rgba(245,192,82,.9)}
-.tbtn{background:transparent;border:1.5px solid rgba(160,108,28,.52);
-  color:rgba(210,156,46,.9);font-family:'Cinzel',serif;font-size:clamp(9px,1.2vw,12px);
-  letter-spacing:.17em;padding:9px 22px;cursor:pointer;transition:background .12s,border-color .12s;white-space:nowrap}
-.tbtn:hover,.tbtn:focus{background:rgba(34,22,6,.9);border-color:rgba(242,180,60,.7);outline:none}
-.tbtn:disabled{opacity:.3;cursor:default;pointer-events:none}
+    #xh::before {
+      width: 100%;
+      height: 1.5px;
+      top: 50%;
+      margin-top: -.75px
+    }
 
-/* ─── Title screen ───────────────────────────────────────── */
-#tt{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;z-index:20;background:rgba(5,3,1,.96)}
-#tt.gone{display:none}
-.tl{font-family:'Cinzel Decorative',serif;font-weight:900;font-size:clamp(24px,7vw,80px);
-  color:rgba(245,192,82,1);letter-spacing:.1em;
-  text-shadow:0 0 48px rgba(245,142,26,.9),0 0 96px rgba(196,90,4,.38);margin-bottom:10px}
-.ts{font-size:clamp(8px,1.4vw,15px);color:rgba(180,130,46,.76);letter-spacing:.3em;margin-bottom:44px}
-.tc{border:1.5px solid rgba(160,108,28,.52);padding:14px 40px;
-  background:rgba(12,8,2,.92);text-align:center;margin-bottom:36px}
-.tcl{font-size:clamp(7px,.95vw,11px);color:rgba(124,88,26,.66);letter-spacing:.22em;margin-bottom:7px}
-.tcv{font-size:clamp(12px,2.3vw,22px);color:rgba(245,192,82,1);letter-spacing:.15em}
-#tt-btns{display:flex;flex-direction:column;align-items:center;gap:11px}
-#enter-btn{background:rgba(12,8,2,.92);border:2px solid rgba(245,192,82,.68);
-  color:rgba(245,192,82,1);font-family:'Cinzel',serif;font-size:clamp(11px,1.6vw,17px);
-  letter-spacing:.22em;padding:14px 46px;cursor:pointer;
-  text-shadow:0 0 13px rgba(245,142,26,.55);
-  transition:background .14s,border-color .14s,box-shadow .14s}
-#enter-btn:hover,#enter-btn:focus{background:rgba(34,22,5,.98);border-color:rgba(245,192,82,1);
-  box-shadow:0 0 26px rgba(245,142,26,.32);outline:none}
-#enter-btn:disabled{opacity:.42;cursor:default;pointer-events:none}
-#how-btn{background:transparent;border:1.5px solid rgba(160,108,28,.42);
-  color:rgba(185,138,44,.8);font-family:'Cinzel',serif;font-size:clamp(9px,1.1vw,13px);
-  letter-spacing:.2em;padding:10px 30px;cursor:pointer;transition:background .12s,border-color .12s}
-#how-btn:hover,#how-btn:focus{background:rgba(26,16,4,.9);border-color:rgba(185,138,44,.68);outline:none}
-#how-btn:disabled{opacity:.2;cursor:default;pointer-events:none}
+    #xh::after {
+      width: 1.5px;
+      height: 100%;
+      left: 50%;
+      margin-left: -.75px
+    }
 
-@keyframes blink{0%,100%{opacity:.28}50%{opacity:1}}
-</style>
+    #xring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      border: 1.5px solid rgba(245, 194, 82, .28);
+      border-radius: 50%;
+      transition: all .14s
+    }
+
+    #xring.aim {
+      width: 44px;
+      height: 44px;
+      border-color: rgba(245, 194, 82, .72)
+    }
+
+    #nlevel {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      font-size: clamp(13px, 2vw, 22px);
+      color: rgba(245, 194, 82, 1);
+      letter-spacing: .18em;
+      text-shadow: 0 0 16px rgba(245, 142, 26, .9)
+    }
+
+    #bestlv {
+      position: absolute;
+      top: 48px;
+      left: 20px;
+      font-size: clamp(9px, 1.2vw, 13px);
+      color: rgba(175, 122, 42, .68);
+      letter-spacing: .13em
+    }
+
+    #seqbox {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      text-align: right;
+      max-width: 250px;
+      font-size: clamp(9px, 1.1vw, 13px);
+      color: rgba(200, 150, 54, .9);
+      letter-spacing: .07em;
+      line-height: 1.9
+    }
+
+    #prompt {
+      position: absolute;
+      bottom: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: clamp(9px, 1.3vw, 14px);
+      letter-spacing: .18em;
+      color: rgba(200, 148, 52, .9);
+      text-shadow: 0 0 12px rgba(245, 142, 26, .55);
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap
+    }
+
+    /* ─── Research stats bar (bottom-right) ─────────────────── */
+    #statsbar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      text-align: right;
+      font-size: clamp(7px, .85vw, 10px);
+      letter-spacing: .12em;
+      color: rgba(138, 98, 30, .6);
+      pointer-events: none;
+      z-index: 5;
+      line-height: 1.9;
+      display: none
+    }
+
+    /* ─── Bottom answer bar ──────────────────────────────────── */
+    #abar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-end;
+      padding: 0 10px 10px;
+      gap: 8px;
+      z-index: 8;
+      pointer-events: none
+    }
+
+    #abar.show {
+      display: flex;
+      pointer-events: all
+    }
+
+    .ab {
+      flex: 1;
+      min-width: 70px;
+      max-width: 115px;
+      background: rgba(12, 8, 2, .95);
+      border: 1.5px solid rgba(160, 108, 28, .65);
+      color: rgba(242, 180, 60, .9);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(8px, 1vw, 11px);
+      letter-spacing: .11em;
+      padding: 8px 8px 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: background .12s, border-color .14s, transform .1s;
+      line-height: 1.4;
+      touch-action: manipulation
+    }
+
+    .ab:hover,
+    .ab:focus {
+      background: rgba(34, 22, 6, .98);
+      border-color: rgba(242, 180, 60, .82);
+      transform: translateY(-3px);
+      outline: 2px solid rgba(242, 180, 60, .48)
+    }
+
+    .ab canvas {
+      display: block;
+      margin: 0 auto 4px;
+      max-width: 100%;
+      height: auto
+    }
+
+    .ab .al {
+      display: none;
+      font-size: .82em;
+      color: rgba(160, 110, 36, .72);
+      margin-top: 2px
+    }
+
+    .ab .ak {
+      display: none;
+      font-size: .75em;
+      color: rgba(242, 180, 60, .5);
+      margin-top: 1px
+    }
+
+    /* CSS-driven accessibility modes */
+    body.acc-large .ab {
+      max-width: 140px;
+      padding: 12px 12px 14px
+    }
+
+    body.acc-labels .ab .al {
+      display: block
+    }
+
+    body.acc-keys .ab .ak {
+      display: block
+    }
+
+    body.acc-hc {
+      filter: contrast(1.4) saturate(1.2)
+    }
+
+    /* ─── Side shortcut panel ────────────────────────────────── */
+    #spanel {
+      position: fixed;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 8;
+      pointer-events: none
+    }
+
+    #spanel.show {
+      display: flex;
+      pointer-events: all
+    }
+
+    .sp {
+      width: 72px;
+      background: rgba(12, 8, 2, .94);
+      border: 1.5px solid rgba(160, 108, 28, .58);
+      color: rgba(242, 180, 60, .88);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(7px, .9vw, 10px);
+      letter-spacing: .1em;
+      padding: 6px 5px 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: background .12s;
+      touch-action: manipulation
+    }
+
+    .sp:hover,
+    .sp:focus {
+      background: rgba(34, 22, 6, .98);
+      outline: 2px solid rgba(242, 180, 60, .42)
+    }
+
+    .sp canvas {
+      display: block;
+      margin: 0 auto 3px
+    }
+
+    .sp .sk {
+      display: block;
+      font-size: .78em;
+      color: rgba(242, 180, 60, .5);
+      margin-top: 2px
+    }
+
+    /* ─── In-arena accessibility quick bar (bottom-left) ────── */
+    #accbar {
+      position: fixed;
+      left: 14px;
+      bottom: 50px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 8;
+      pointer-events: none
+    }
+
+    #accbar.show {
+      display: flex;
+      pointer-events: all
+    }
+
+    .acb {
+      background: rgba(12, 8, 2, .88);
+      border: 1.5px solid rgba(160, 108, 28, .5);
+      color: rgba(242, 180, 60, .78);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(7px, .84vw, 10px);
+      letter-spacing: .12em;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+      white-space: nowrap;
+      touch-action: manipulation
+    }
+
+    .acb:hover,
+    .acb:focus {
+      background: rgba(34, 22, 6, .96);
+      border-color: rgba(242, 180, 60, .66);
+      outline: none
+    }
+
+    .acb.on {
+      border-color: rgba(242, 180, 60, .9);
+      color: rgba(242, 180, 60, 1);
+      background: rgba(34, 22, 6, .9)
+    }
+
+    /* ─── Pause menu ─────────────────────────────────────────── */
+    #pm {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-y: auto;
+      padding: 40px 16px;
+      z-index: 30;
+      background: rgba(4, 2, 1, .94)
+    }
+
+    #pm.show {
+      display: flex
+    }
+
+    .pt {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(18px, 4.5vw, 50px);
+      color: rgba(245, 192, 82, .96);
+      letter-spacing: .14em;
+      text-shadow: 0 0 28px rgba(245, 142, 26, .7);
+      margin-bottom: 6px
+    }
+
+    .ps {
+      font-size: clamp(8px, 1.1vw, 12px);
+      color: rgba(132, 92, 26, .6);
+      letter-spacing: .3em;
+      margin-bottom: 32px
+    }
+
+    .pb {
+      background: transparent;
+      border: 1.5px solid rgba(160, 108, 28, .52);
+      color: rgba(210, 156, 46, .92);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(10px, 1.4vw, 14px);
+      letter-spacing: .18em;
+      padding: 11px 40px;
+      cursor: pointer;
+      width: 300px;
+      max-width: 88vw;
+      margin: 4px 0;
+      transition: background .12s, border-color .12s;
+      touch-action: manipulation
+    }
+
+    .pb:hover,
+    .pb:focus {
+      background: rgba(34, 22, 6, .9);
+      border-color: rgba(242, 180, 60, .7);
+      outline: none
+    }
+
+    .pdiv {
+      width: 300px;
+      max-width: 88vw;
+      height: 1px;
+      background: rgba(160, 108, 28, .24);
+      margin: 14px 0
+    }
+
+    .plbl {
+      font-size: clamp(8px, 1vw, 11px);
+      color: rgba(132, 92, 26, .65);
+      letter-spacing: .18em;
+      margin-bottom: 9px;
+      text-align: center
+    }
+
+    .pnrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px
+    }
+
+    .pnv {
+      font-size: clamp(15px, 2.8vw, 24px);
+      color: rgba(245, 192, 82, 1);
+      min-width: 36px;
+      text-align: center
+    }
+
+    .pnb {
+      background: rgba(18, 12, 4, .9);
+      border: 1.5px solid rgba(160, 108, 28, .5);
+      color: rgba(210, 156, 46, .9);
+      font-family: 'Cinzel', serif;
+      font-size: 17px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      transition: background .1s;
+      touch-action: manipulation
+    }
+
+    .pnb:hover {
+      background: rgba(42, 28, 8, .9)
+    }
+
+    .trow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 300px;
+      max-width: 88vw;
+      margin: 5px 0
+    }
+
+    .tlbl {
+      font-size: clamp(8px, 1vw, 11px);
+      color: rgba(178, 130, 44, .74);
+      letter-spacing: .14em
+    }
+
+    .tog {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      background: rgba(18, 12, 4, .9);
+      border: 1.5px solid rgba(160, 108, 28, .5);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .2s;
+      touch-action: manipulation
+    }
+
+    .tog.on {
+      background: rgba(120, 82, 18, .72)
+    }
+
+    .tog::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      top: 2px;
+      left: 2px;
+      border-radius: 50%;
+      background: rgba(160, 108, 28, .62);
+      transition: transform .2s
+    }
+
+    .tog.on::after {
+      transform: translateX(18px);
+      background: rgba(242, 180, 60, .92)
+    }
+
+    .pidinput {
+      background: rgba(12, 8, 2, .92);
+      border: 1.5px solid rgba(160, 108, 28, .5);
+      color: rgba(245, 192, 82, .9);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(10px, 1.3vw, 13px);
+      letter-spacing: .13em;
+      padding: 9px 14px;
+      width: 300px;
+      max-width: 88vw;
+      outline: none;
+      margin-bottom: 4px
+    }
+
+    /* ─── Overlays ───────────────────────────────────────────── */
+    #fade {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      opacity: 1;
+      z-index: 10;
+      pointer-events: none;
+      transition: opacity .62s
+    }
+
+    #rfl {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s
+    }
+
+    #rfl.show {
+      opacity: 1
+    }
+
+    #rfl span {
+      font-family: 'Cinzel Decorative', serif;
+      font-weight: 900;
+      font-size: clamp(26px, 7vw, 76px);
+      letter-spacing: .06em;
+      text-shadow: 0 0 58px currentColor
+    }
+
+    #rfl.ok span {
+      color: rgba(46, 220, 90, 1)
+    }
+
+    #rfl.no span {
+      color: rgba(220, 46, 20, 1)
+    }
+
+    /* ─── Tutorial overlay ───────────────────────────────────── */
+    #tut {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      background: rgba(4, 2, 1, .97);
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    #tut.show {
+      display: flex
+    }
+
+    #tut-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: clamp(14px, 3vw, 46px);
+      max-width: 840px;
+      width: 92vw;
+      padding: 0 16px;
+      flex-wrap: wrap;
+      justify-content: center
+    }
+
+    #tut-npc {
+      flex-shrink: 0
+    }
+
+    #tut-npc canvas {
+      display: block;
+      max-width: 100%
+    }
+
+    #tut-bubble {
+      flex: 1;
+      min-width: 280px;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between
+    }
+
+    .tut-who {
+      font-size: clamp(8px, 1vw, 11px);
+      letter-spacing: .26em;
+      color: rgba(160, 108, 28, .68);
+      margin-bottom: 8px
+    }
+
+    .tut-txt {
+      font-size: clamp(11px, 1.5vw, 16px);
+      line-height: 1.85;
+      color: rgba(218, 170, 58, .9);
+      letter-spacing: .04em;
+      border-left: 2px solid rgba(160, 108, 28, .36);
+      padding-left: 18px;
+      flex: 1
+    }
+
+    .tut-txt b {
+      color: rgba(245, 192, 82, 1)
+    }
+
+    .tut-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      gap: 10px
+    }
+
+    .tut-dots {
+      display: flex;
+      gap: 7px;
+      align-items: center
+    }
+
+    .tut-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(160, 108, 28, .32);
+      transition: background .2s
+    }
+
+    .tut-dot.on {
+      background: rgba(245, 192, 82, .9)
+    }
+
+    .tbtn {
+      background: transparent;
+      border: 1.5px solid rgba(160, 108, 28, .52);
+      color: rgba(210, 156, 46, .9);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(9px, 1.2vw, 12px);
+      letter-spacing: .17em;
+      padding: 9px 22px;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+      white-space: nowrap;
+      touch-action: manipulation
+    }
+
+    .tbtn:hover,
+    .tbtn:focus {
+      background: rgba(34, 22, 6, .9);
+      border-color: rgba(242, 180, 60, .7);
+      outline: none
+    }
+
+    .tbtn:disabled {
+      opacity: .3;
+      cursor: default;
+      pointer-events: none
+    }
+
+    /* ─── Title screen ───────────────────────────────────────── */
+    #tt {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      background: rgba(5, 3, 1, .96)
+    }
+
+    #tt.gone {
+      display: none
+    }
+
+    .tl {
+      font-family: 'Cinzel Decorative', serif;
+      font-weight: 900;
+      font-size: clamp(24px, 7vw, 80px);
+      color: rgba(245, 192, 82, 1);
+      letter-spacing: .1em;
+      text-shadow: 0 0 48px rgba(245, 142, 26, .9), 0 0 96px rgba(196, 90, 4, .38);
+      margin-bottom: 10px;
+      text-align: center
+    }
+
+    .ts {
+      font-size: clamp(8px, 1.4vw, 15px);
+      color: rgba(180, 130, 46, .76);
+      letter-spacing: .3em;
+      margin-bottom: 44px;
+      text-align: center
+    }
+
+    .tc {
+      border: 1.5px solid rgba(160, 108, 28, .52);
+      padding: 14px 40px;
+      background: rgba(12, 8, 2, .92);
+      text-align: center;
+      margin-bottom: 36px
+    }
+
+    .tcl {
+      font-size: clamp(7px, .95vw, 11px);
+      color: rgba(124, 88, 26, .66);
+      letter-spacing: .22em;
+      margin-bottom: 7px
+    }
+
+    .tcv {
+      font-size: clamp(12px, 2.3vw, 22px);
+      color: rgba(245, 192, 82, 1);
+      letter-spacing: .15em
+    }
+
+    #tt-btns {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      max-width: 300px
+    }
+
+    #enter-btn {
+      background: rgba(12, 8, 2, .92);
+      border: 2px solid rgba(245, 192, 82, .68);
+      color: rgba(245, 192, 82, 1);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(11px, 1.6vw, 17px);
+      letter-spacing: .22em;
+      padding: 14px 20px;
+      width: 100%;
+      cursor: pointer;
+      text-shadow: 0 0 13px rgba(245, 142, 26, .55);
+      transition: background .14s, border-color .14s, box-shadow .14s;
+      touch-action: manipulation
+    }
+
+    #enter-btn:hover,
+    #enter-btn:focus {
+      background: rgba(34, 22, 5, .98);
+      border-color: rgba(245, 192, 82, 1);
+      box-shadow: 0 0 26px rgba(245, 142, 26, .32);
+      outline: none
+    }
+
+    #enter-btn:disabled {
+      opacity: .42;
+      cursor: default;
+      pointer-events: none
+    }
+
+    #how-btn {
+      background: transparent;
+      border: 1.5px solid rgba(160, 108, 28, .42);
+      color: rgba(185, 138, 44, .8);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(9px, 1.1vw, 13px);
+      letter-spacing: .2em;
+      padding: 10px 20px;
+      width: 100%;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+      touch-action: manipulation
+    }
+
+    #how-btn:hover,
+    #how-btn:focus {
+      background: rgba(26, 16, 4, .9);
+      border-color: rgba(185, 138, 44, .68);
+      outline: none
+    }
+
+    #how-btn:disabled {
+      opacity: .2;
+      cursor: default;
+      pointer-events: none
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: .28
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    /* ─── Touch Controls (Mobile) ────────────────────────────── */
+    #t-joystick {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: clamp(90px, 20vw, 130px);
+      height: clamp(90px, 20vw, 130px);
+      background: rgba(12, 8, 2, .5);
+      border: 2px solid rgba(160, 108, 28, .4);
+      border-radius: 50%;
+      display: none;
+      z-index: 10;
+      touch-action: none;
+    }
+
+    #t-stick {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40%;
+      height: 40%;
+      transform: translate(-50%, -50%);
+      background: rgba(245, 192, 82, .6);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    #t-jump {
+      position: fixed;
+      bottom: 30px;
+      right: 20px;
+      width: clamp(60px, 15vw, 80px);
+      height: clamp(60px, 15vw, 80px);
+      background: rgba(12, 8, 2, .6);
+      border: 2px solid rgba(160, 108, 28, .5);
+      border-radius: 50%;
+      display: none;
+      z-index: 10;
+      touch-action: none;
+      color: rgba(245, 192, 82, .8);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(10px, 3vw, 14px);
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    #t-pause {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 10px 14px;
+      background: rgba(12, 8, 2, .6);
+      border: 2px solid rgba(160, 108, 28, .5);
+      color: rgba(245, 192, 82, .9);
+      font-family: 'Cinzel', serif;
+      font-size: clamp(10px, 3vw, 14px);
+      display: none;
+      z-index: 35;
+      cursor: pointer;
+      letter-spacing: .1em;
+      touch-action: manipulation;
+    }
+
+    body.is-touch #t-joystick {
+      display: block;
+    }
+
+    body.is-touch #t-jump {
+      display: flex;
+    }
+
+    body.is-touch #t-pause {
+      display: block;
+    }
+
+    body.is-touch #lockhint p {
+      animation: none;
+      font-size: 11px;
+      opacity: 0.8;
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="c"></canvas>
+  <canvas id="c"></canvas>
 
-<!-- Gun overlay -->
-<div id="gun"><canvas id="gc"></canvas></div>
+  <div id="gun"><canvas id="gc"></canvas></div>
 
-<!-- Pointer-lock indicator - small, bottom-centre, not intrusive -->
-<div id="lockhint">
-  <p>CLICK TO CAPTURE MOUSE</p>
-</div>
-
-<!-- Research stats bar -->
-<div id="statsbar"></div>
-
-<!-- HUD -->
-<div id="hud">
-  <div id="xh"></div><div id="xring"></div>
-  <div id="nlevel">N-BACK: 1</div>
-  <div id="bestlv">BEST: 1</div>
-  <div id="seqbox"></div>
-  <div id="prompt"></div>
-</div>
-
-<!-- Answer bar -->
-<div id="abar"></div>
-
-<!-- Side shortcut panel -->
-<div id="spanel"></div>
-
-<!-- In-arena accessibility quick bar -->
-<div id="accbar">
-  <button class="acb on" id="acb-buttons">&#9635; BUTTONS</button>
-  <button class="acb" id="acb-labels">&#9776; LABELS</button>
-  <button class="acb" id="acb-keys">&#9875; KEYS 1-4</button>
-  <button class="acb" id="acb-side">&#9632; SIDE</button>
-  <button class="acb" id="acb-large">&#8679; LARGE</button>
-  <button class="acb" id="acb-hc">&#9788; CONTRAST</button>
-</div>
-
-<!-- Pause menu -->
-<div id="pm">
-  <div class="pt">PAUSED</div>
-  <div class="ps">&#8212; GLYPHMIND &#8212;</div>
-  <button class="pb" id="pm-resume">&#9654;&nbsp; RESUME</button>
-  <button class="pb" id="pm-restart">&#8635;&nbsp; RESTART (N=1)</button>
-  <div class="pdiv"></div>
-  <div class="plbl">CUSTOM STARTING LEVEL</div>
-  <div class="pnrow">
-    <button class="pnb" id="pm-nminus">&#8722;</button>
-    <div class="pnv" id="pm-nval">1</div>
-    <button class="pnb" id="pm-nplus">+</button>
+  <div id="lockhint">
+    <p>CLICK TO CAPTURE MOUSE</p>
   </div>
-  <button class="pb" id="pm-setn">&#9889;&nbsp; START AT THIS N</button>
-  <div class="pdiv"></div>
-  <div class="plbl">ACCESSIBILITY</div>
-  <div class="trow"><span class="tlbl">ANSWER BUTTONS (trial room)</span>
-    <div class="tog on" id="t-buttons" role="switch" aria-checked="true" tabindex="0"></div></div>
-  <div class="trow"><span class="tlbl">SHOW GLYPH LABELS</span>
-    <div class="tog" id="t-labels" role="switch" aria-checked="false" tabindex="0"></div></div>
-  <div class="trow"><span class="tlbl">LARGE BUTTONS</span>
-    <div class="tog" id="t-large" role="switch" aria-checked="false" tabindex="0"></div></div>
-  <div class="trow"><span class="tlbl">KEY HINTS 1-4</span>
-    <div class="tog" id="t-keys" role="switch" aria-checked="false" tabindex="0"></div></div>
-  <div class="trow"><span class="tlbl">SIDE PANEL</span>
-    <div class="tog" id="t-side" role="switch" aria-checked="false" tabindex="0"></div></div>
-  <div class="trow"><span class="tlbl">HIGH CONTRAST</span>
-    <div class="tog" id="t-hc" role="switch" aria-checked="false" tabindex="0"></div></div>
-  <div class="pdiv"></div>
-  <button class="pb" id="pm-tutorial">&#9432;&nbsp; HOW TO PLAY</button>
-  <button class="pb" id="pm-export">&#8681;&nbsp; EXPORT SESSION CSV</button>
-  <div class="pdiv"></div>
-  <div class="plbl">PARTICIPANT ID</div>
-  <input id="pid" class="pidinput" type="text" maxlength="32" placeholder="e.g. P001" autocomplete="off">
-</div>
 
-<!-- Flash result overlay -->
-<div id="rfl"><span id="rfl-txt">CORRECT!</span></div>
+  <div id="statsbar"></div>
 
-<!-- Tutorial overlay -->
-<div id="tut">
-  <div id="tut-inner">
-    <div id="tut-npc"><canvas id="npc-cv" width="160" height="260"></canvas></div>
-    <div id="tut-bubble">
-      <div class="tut-who">KHENU &nbsp;·&nbsp; KEEPER OF THE MEMORY HALLS</div>
-      <div class="tut-txt" id="tut-txt"></div>
-      <div class="tut-nav">
-        <button class="tbtn" id="tut-prev">&#8592; BACK</button>
-        <div class="tut-dots" id="tut-dots"></div>
-        <button class="tbtn" id="tut-next">NEXT &#8594;</button>
+  <div id="hud">
+    <div id="xh"></div>
+    <div id="xring"></div>
+    <div id="nlevel">N-BACK: 1</div>
+    <div id="bestlv">BEST: 1</div>
+    <div id="seqbox"></div>
+    <div id="prompt"></div>
+  </div>
+
+  <div id="abar"></div>
+
+  <div id="spanel"></div>
+
+  <div id="accbar">
+    <button class="acb on" id="acb-buttons">&#9635; BUTTONS</button>
+    <button class="acb" id="acb-labels">&#9776; LABELS</button>
+    <button class="acb" id="acb-keys">&#9875; KEYS 1-4</button>
+    <button class="acb" id="acb-side">&#9632; SIDE</button>
+    <button class="acb" id="acb-large">&#8679; LARGE</button>
+    <button class="acb" id="acb-hc">&#9788; CONTRAST</button>
+  </div>
+
+  <div id="pm">
+    <div class="pt">PAUSED</div>
+    <div class="ps">&#8212; GLYPHMIND &#8212;</div>
+    <button class="pb" id="pm-resume">&#9654;&nbsp; RESUME</button>
+    <button class="pb" id="pm-restart">&#8635;&nbsp; RESTART (N=1)</button>
+    <div class="pdiv"></div>
+    <div class="plbl">CUSTOM STARTING LEVEL</div>
+    <div class="pnrow">
+      <button class="pnb" id="pm-nminus">&#8722;</button>
+      <div class="pnv" id="pm-nval">1</div>
+      <button class="pnb" id="pm-nplus">+</button>
+    </div>
+    <button class="pb" id="pm-setn">&#9889;&nbsp; START AT THIS N</button>
+    <div class="pdiv"></div>
+    <div class="plbl">ACCESSIBILITY</div>
+    <div class="trow"><span class="tlbl">ANSWER BUTTONS (trial room)</span>
+      <div class="tog on" id="t-buttons" role="switch" aria-checked="true" tabindex="0"></div>
+    </div>
+    <div class="trow"><span class="tlbl">SHOW GLYPH LABELS</span>
+      <div class="tog" id="t-labels" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="trow"><span class="tlbl">LARGE BUTTONS</span>
+      <div class="tog" id="t-large" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="trow"><span class="tlbl">KEY HINTS 1-4</span>
+      <div class="tog" id="t-keys" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="trow"><span class="tlbl">SIDE PANEL</span>
+      <div class="tog" id="t-side" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="trow"><span class="tlbl">HIGH CONTRAST</span>
+      <div class="tog" id="t-hc" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="pdiv"></div>
+    <button class="pb" id="pm-tutorial">&#9432;&nbsp; HOW TO PLAY</button>
+    <button class="pb" id="pm-export">&#8681;&nbsp; EXPORT SESSION CSV</button>
+    <div class="pdiv"></div>
+    <div class="plbl">PARTICIPANT ID</div>
+    <input id="pid" class="pidinput" type="text" maxlength="32" placeholder="e.g. P001" autocomplete="off">
+  </div>
+
+  <div id="rfl"><span id="rfl-txt">CORRECT!</span></div>
+
+  <div id="tut">
+    <div id="tut-inner">
+      <div id="tut-npc"><canvas id="npc-cv" width="160" height="260"></canvas></div>
+      <div id="tut-bubble">
+        <div class="tut-who">KHENU &nbsp;·&nbsp; KEEPER OF THE MEMORY HALLS</div>
+        <div class="tut-txt" id="tut-txt"></div>
+        <div class="tut-nav">
+          <button class="tbtn" id="tut-prev">&#8592; BACK</button>
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tbtn" id="tut-next">NEXT &#8594;</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Fade overlay -->
-<div id="fade"></div>
+  <div id="fade"></div>
 
-<!-- Title screen -->
-<div id="tt">
-  <div class="tl">GLYPHMIND</div>
-  <div class="ts">MEMORY OF THE ANCIENTS</div>
-  <div class="tc">
-    <div class="tcl">ADAPTIVE N-BACK MEMORY TEST</div>
-    <div class="tcv">LEVEL 1 &#8594; &#8734;</div>
+  <div id="tt">
+    <div class="tl">GLYPHMIND</div>
+    <div class="ts">MEMORY OF THE ANCIENTS</div>
+    <div class="tc">
+      <div class="tcl">ADAPTIVE N-BACK MEMORY TEST</div>
+      <div class="tcv">LEVEL 1 &#8594; &#8734;</div>
+    </div>
+    <div id="tt-btns">
+      <button id="enter-btn" disabled>&#8987;&nbsp; LOADING GLYPHS…</button>
+      <button id="how-btn" disabled>&#9432;&nbsp; HOW TO PLAY</button>
+    </div>
   </div>
-  <div id="tt-btns">
-    <button id="enter-btn" disabled>&#8987;&nbsp; LOADING GLYPHS…</button>
-    <button id="how-btn" disabled>&#9432;&nbsp; HOW TO PLAY</button>
+
+  <div id="t-joystick">
+    <div id="t-stick"></div>
   </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-'use strict';
-// ================================================================
-//  GLYPHMIND 3D  |  Three.js r128
-//  N-Back memory test with Egyptian Hieroglyphs
-//
-//  N-Back math:
-//    sequence length = N + 3
-//    correct answer  = seq[2]  (always index 2)
-//    because: seq.length-1-N = (N+3)-1-N = 2
-//
-//  This means:
-//    N=1: seq=[A,B,C,D]       → remember C (1-back from D)
-//    N=2: seq=[A,B,C,D,E]     → remember C (2-back from E)
-//    N=3: seq=[A,B,C,D,E,F]   → remember C (3-back from F)
-// ================================================================
-
-// ── DOM refs ─────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-const C3D      = $('c');
-const GCV      = $('gc');
-const GCX      = GCV.getContext('2d');
-const GUN      = $('gun');
-const LOCKHINT = $('lockhint');
-const HUD      = $('hud');
-const NLEVEL   = $('nlevel');
-const BESTLV   = $('bestlv');
-const SEQBOX   = $('seqbox');
-const PROMPT   = $('prompt');
-const STATSBAR = $('statsbar');
-const ABAR     = $('abar');
-const SPANEL   = $('spanel');
-const ACCBAR   = $('accbar');
-const PMENU    = $('pm');
-const PM_NVAL  = $('pm-nval');
-const FADE     = $('fade');
-const RFL      = $('rfl');
-const RFL_TXT  = $('rfl-txt');
-const TUT      = $('tut');
-const TUT_TXT  = $('tut-txt');
-const TUT_DOTS = $('tut-dots');
-const TUT_PREV = $('tut-prev');
-const TUT_NEXT = $('tut-next');
-const XRING    = $('xring');
-const TITLE    = $('tt');
-
-// ── Three.js renderer ─────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({
-  canvas: C3D, antialias: false,
-  powerPreference: 'high-performance', stencil: false
-});
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-renderer.shadowMap.enabled = false;
-renderer.toneMapping = THREE.NoToneMapping;
-
-const scene = new THREE.Scene();
-scene.fog   = new THREE.Fog(0x0b0804, 16, 92);
-
-const cam = new THREE.PerspectiveCamera(72, 1, 0.1, 100);
-cam.position.set(0, 1.78, 3.5);
-
-function onResize() {
-  renderer.setSize(innerWidth, innerHeight);
-  cam.aspect = innerWidth / innerHeight;
-  cam.updateProjectionMatrix();
-  const dpr = Math.min(devicePixelRatio, 1.5);
-  GCV.width  = (GUN.offsetWidth  || 260) * dpr;
-  GCV.height = (GUN.offsetHeight || 195) * dpr;
-}
-onResize();
-window.addEventListener('resize', onResize);
-
-// ── Lights ────────────────────────────────────────────────────────
-// Low ambient — torches do the real work
-scene.add(new THREE.AmbientLight(0x1a0d05, 0.9));
-
-// 4 corridor torch PointLights (repositioned each level, hidden by default)
-const TORCH_LIGHTS = Array.from({length: 4}, () => {
-  const pl = new THREE.PointLight(0xff7a18, 2.8, 18);
-  pl.visible = false;
-  scene.add(pl);
-  return pl;
-});
-
-// Arena centre light (only on during trial room phase)
-const ARENA_LIGHT = new THREE.PointLight(0xf5c040, 3.5, 30);
-ARENA_LIGHT.visible = false;
-scene.add(ARENA_LIGHT);
-
-// ── Web Audio (synthesised, no files) ────────────────────────────
-let audioCtx = null;
-function beep(freq, type, dur, vol = 0.16, delay = 0) {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
-  g.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
-  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + delay + dur);
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start(audioCtx.currentTime + delay);
-  o.stop(audioCtx.currentTime + delay + dur);
-}
-const SFX = {
-  panel:   () => { beep(320,'sine',0.2,0.13); beep(480,'sine',0.16,0.07,0.04); },
-  enter:   () => { [220,330,440,660].forEach((f,i) => beep(f,'sine',0.5,0.11,i*0.06)); },
-  shoot:   () => { beep(80,'sawtooth',0.12,0.32); beep(120,'square',0.07,0.18,0.03); },
-  correct: () => { [523,659,784,1047].forEach((f,i) => beep(f,'sine',0.4,0.14,i*0.07)); },
-  wrong:   () => { beep(180,'sawtooth',0.3,0.26); beep(160,'sawtooth',0.2,0.24,0.06); },
-};
-
-// ── Stone texture factory ─────────────────────────────────────────
-function makeStone(r, g, b, tiles = 4) {
-  const S = 512, cv = document.createElement('canvas');
-  cv.width = cv.height = S;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(0,0,S,S);
-  // pixel noise
-  const id = ctx.getImageData(0,0,S,S), d = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random()-0.5)*48;
-    d[i]   = Math.max(0,Math.min(255,d[i]  +n));
-    d[i+1] = Math.max(0,Math.min(255,d[i+1]+n*0.68));
-    d[i+2] = Math.max(0,Math.min(255,d[i+2]+n*0.42));
-  }
-  ctx.putImageData(id,0,0);
-  // mortar grid
-  const ts = S/tiles;
-  ctx.strokeStyle='rgba(6,4,1,.54)'; ctx.lineWidth=3;
-  for (let y=ts; y<S; y+=ts){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(S,y); ctx.stroke(); }
-  ctx.lineWidth=2.2;
-  for (let row=0; row<=tiles; row++){
-    const off=(row%2)*ts*0.65;
-    for (let x=off; x<S+ts; x+=ts*1.5){
-      ctx.beginPath(); ctx.moveTo(x,row*ts); ctx.lineTo(x,(row+1)*ts); ctx.stroke();
-    }
-  }
-  // cracks
-  ctx.strokeStyle='rgba(4,2,1,.44)'; ctx.lineWidth=1.1;
-  for (let c=0; c<14; c++){
-    let cx=Math.random()*S, cy=Math.random()*S;
-    ctx.beginPath(); ctx.moveTo(cx,cy);
-    for (let s=0; s<4+~~(Math.random()*5); s++){
-      cx+=(Math.random()-0.5)*42; cy+=(Math.random()-0.5)*42; ctx.lineTo(cx,cy);
-    }
-    ctx.stroke();
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.generateMipmaps = true;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  return tex;
-}
-
-const TX = {
-  wall:  makeStone(54,40,20),
-  floor: makeStone(40,29,13),
-  ceil:  makeStone(26,18,8),
-  dark:  makeStone(22,14,6),
-  arena: makeStone(48,34,16),
-};
-
-// ── Shared materials ──────────────────────────────────────────────
-function bmat(col) { return new THREE.MeshBasicMaterial({color:col}); }
-const M = {
-  cap:  bmat(0x2a1a08),
-  gold: bmat(0xf5c040),
-  fire: bmat(0xff8c22),
-  ruin: new THREE.MeshLambertMaterial({color:0x7c5e30}),
-  inv:  new THREE.MeshBasicMaterial({visible:false, depthWrite:false}),
-};
-function tmat(tex,rx,ry){
-  const t=tex.clone(); t.repeat.set(rx,ry); t.needsUpdate=true;
-  return new THREE.MeshLambertMaterial({map:t});
-}
-
-// ── Egyptian Hieroglyphs ──────────────────────────────────────────
-// Real Unicode characters from the Egyptian Hieroglyphs block (U+13000–U+1342F)
-// Rendered via Noto Sans Egyptian Hieroglyphs (Google Fonts)
-// Matched to the hieroglyphic alphabet chart (Gardiner sign list)
-const GLYPHS = [
-  { ch: '\u{13080}', id: 'EYE',     name: 'Eye' },        // D4  – Eye of Horus
-  { ch: '\u{130D0}', id: 'MOUTH',   name: 'Mouth' },      // D21 – Mouth (R)
-  { ch: '\u{130D2}', id: 'HAND',    name: 'Hand' },       // D46 – Hand (D)
-  { ch: '\u{1312D}', id: 'OWL',     name: 'Owl' },        // G17 – Owl (M)
-  { ch: '\u{13192}', id: 'FEATHER', name: 'Feather' },    // H6  – Feather (E/I/Y)
-  { ch: '\u{13170}', id: 'COBRA',   name: 'Cobra' },      // I10 – Cobra (J)
-  { ch: '\u{13171}', id: 'VIPER',   name: 'Viper' },      // I9  – Horned viper (F)
-  { ch: '\u{131CD}', id: 'WATER',   name: 'Water' },      // N35 – Water ripples (N)
-  { ch: '\u{131D8}', id: 'STAR',    name: 'Star' },       // N14 – Star
-  { ch: '\u{131E0}', id: 'LOAF',    name: 'Loaf' },       // X1  – Bread loaf (T)
-  { ch: '\u{131BC}', id: 'SUN',     name: 'Sun' },        // N5  – Sun disk
-  { ch: '\u{13124}', id: 'DJED',    name: 'Djed' },       // R11 – Djed pillar
-];
-const N_GLYPHS = GLYPHS.length; // 12
-
-// Tile renderer — draws a stone-carved tile with the Unicode hieroglyph
-function drawTile(ctx, S, gi, glow) {
-  // stone background with noise
-  ctx.fillStyle = '#1e1409'; ctx.fillRect(0,0,S,S);
-  const id = ctx.getImageData(0,0,S,S), d = id.data;
-  for (let i=0; i<d.length; i+=4){
-    const n=(Math.random()-0.5)*34;
-    d[i]  =Math.max(0,Math.min(255,d[i]  +n));
-    d[i+1]=Math.max(0,Math.min(255,d[i+1]+n*0.65));
-    d[i+2]=Math.max(0,Math.min(255,d[i+2]+n*0.38));
-  }
-  ctx.putImageData(id,0,0);
-  // carved border
-  ctx.strokeStyle='rgba(128,82,16,.68)'; ctx.lineWidth=5; ctx.strokeRect(3,3,S-6,S-6);
-  ctx.strokeStyle='rgba(68,46,12,.32)';  ctx.lineWidth=2; ctx.strokeRect(10,10,S-20,S-20);
-  // corner chips
-  [[3,3],[S-3,3],[3,S-3],[S-3,S-3]].forEach(([cx,cy])=>{
-    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,11);
-    g.addColorStop(0,'rgba(4,2,1,.52)'); g.addColorStop(1,'rgba(4,2,1,0)');
-    ctx.fillStyle=g; ctx.fillRect(cx-11,cy-11,22,22);
-  });
-  // chisel texture
-  ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=0.7;
-  for (let y=14; y<S-14; y+=5){ ctx.beginPath(); ctx.moveTo(14,y); ctx.lineTo(S-14,y); ctx.stroke(); }
-  // the hieroglyph
-  const fs = Math.floor(S*0.56);
-  ctx.font = `${fs}px "Noto Sans Egyptian Hieroglyphs",serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  if (glow){
-    ctx.save(); ctx.shadowBlur=24; ctx.shadowColor='rgba(245,160,40,.95)';
-    ctx.fillStyle='rgba(245,202,82,1)';
-    ctx.fillText(GLYPHS[gi].ch, S/2, S*0.46);
-    ctx.restore();
-  } else {
-    ctx.fillStyle='rgba(218,164,52,.84)';
-    ctx.fillText(GLYPHS[gi].ch, S/2, S*0.46);
-  }
-}
-
-// Glyph textures baked AFTER font loads (populated in fonts.ready below)
-let PTEX, GTEX, PMAT, GMAT;
-
-// ── World geometry ────────────────────────────────────────────────
-const CW=9, CH=10, AH=13, AR=17;
-let worldGrp = null;
-const DM = new THREE.Object3D(); // instancer dummy
-
-function disposeGrp(grp){
-  grp.traverse(o=>{
-    if (!o.isMesh && !o.isInstancedMesh) return;
-    if (o.geometry) o.geometry.dispose();
-    const mm = Array.isArray(o.material)?o.material:[o.material];
-    mm.forEach(m=>{ if(m){ if(m.map)m.map.dispose(); m.dispose(); } });
-  });
-}
-
-function buildLevel(seq){
-  if (worldGrp){ disposeGrp(worldGrp); scene.remove(worldGrp); }
-  // Hide all lights before repositioning
-  TORCH_LIGHTS.forEach(l => l.visible=false);
-  ARENA_LIGHT.visible = false;
-
-  const grp    = new THREE.Group();
-  const panels  = [];   // {z, gi, mesh, hit, glowTimer}
-  const targets = [];   // {plane, hbox}
-
-  const nP    = seq.length;
-  const cLen  = nP*12+28;
-  const cZ0   = 4.0;
-  const cZ1   = cZ0-cLen;
-  const aZ    = cZ1-16;
-
-  // helpers
-  function stat(geo,mat,x,y,z,ry=0){
-    const m=new THREE.Mesh(geo,mat);
-    m.position.set(x,y,z); if(ry) m.rotation.y=ry;
-    m.matrixAutoUpdate=false; m.updateMatrix(); grp.add(m); return m;
-  }
-  function cyl(rt,rb,h,seg,mat,x,y,z){ return stat(new THREE.CylinderGeometry(rt,rb,h,seg),mat,x,y,z); }
-
-  // ── Corridor shell ──────────────────────────────────────────────
-  const rH=Math.ceil(cLen/5);
-  stat(new THREE.BoxGeometry(CW,.4,cLen),  tmat(TX.floor,5,rH),  0,-.2,   cZ0-cLen/2);
-  stat(new THREE.BoxGeometry(CW,.4,cLen),  tmat(TX.ceil, 4,rH),  0,CH+.2, cZ0-cLen/2);
-  stat(new THREE.BoxGeometry(.4,CH,cLen),  tmat(TX.wall,rH,2), -CW/2,CH/2,cZ0-cLen/2);
-  stat(new THREE.BoxGeometry(.4,CH,cLen),  tmat(TX.wall,rH,2),  CW/2,CH/2,cZ0-cLen/2);
-  stat(new THREE.BoxGeometry(CW+1,CH,.4),  tmat(TX.dark,4,2),  0,CH/2,cZ1-.2);
-
-  // ── Instanced pilasters — per-side, skip where panels are ───────
-  const leftPZ=new Set(), rightPZ=new Set();
-  for (let i=0; i<nP; i++){
-    const pz=Math.round(cZ0-9-i*12);
-    (i%2===0 ? leftPZ : rightPZ).add(pz);
-  }
-  function blocks(set,z){ for(let d=-4;d<=4;d++) if(set.has(Math.round(z)+d)) return true; return false; }
-
-  const maxPil=Math.floor(cLen/14)*2+4;
-  const iPil=new THREE.InstancedMesh(new THREE.BoxGeometry(1.2,CH,.78),M.cap,maxPil);
-  const iCap=new THREE.InstancedMesh(new THREE.BoxGeometry(1.5,.6,1.0),M.cap,maxPil);
-  iPil.matrixAutoUpdate=iCap.matrixAutoUpdate=false;
-  let pi=0; DM.scale.set(1,1,1);
-  for (let z=cZ0-5; z>cZ1+3; z-=14){
-    if (!blocks(leftPZ,z) && pi<maxPil-1){
-      DM.position.set(-CW/2+.6,CH/2,z);   DM.updateMatrix(); iPil.setMatrixAt(pi,DM.matrix);
-      DM.position.set(-CW/2+.6,CH+.09,z); DM.updateMatrix(); iCap.setMatrixAt(pi,DM.matrix);
-      pi++;
-    }
-    if (!blocks(rightPZ,z) && pi<maxPil){
-      DM.position.set(CW/2-.6,CH/2,z);    DM.updateMatrix(); iPil.setMatrixAt(pi,DM.matrix);
-      DM.position.set(CW/2-.6,CH+.09,z);  DM.updateMatrix(); iCap.setMatrixAt(pi,DM.matrix);
-      pi++;
-    }
-  }
-  DM.scale.set(0,0,0); DM.updateMatrix();
-  while(pi<maxPil){ iPil.setMatrixAt(pi,DM.matrix); iCap.setMatrixAt(pi,DM.matrix); pi++; }
-  DM.scale.set(1,1,1);
-  iPil.instanceMatrix.needsUpdate=iCap.instanceMatrix.needsUpdate=true;
-  grp.add(iPil); grp.add(iCap);
-
-  // Arch ribs
-  for (let z=cZ0-5; z>cZ1+3; z-=28)
-    stat(new THREE.BoxGeometry(CW-.5,.38,.6),M.cap,0,CH+.03,z);
-
-  // ── Rubble ──────────────────────────────────────────────────────
-  [[-34,-1],[-22,1],[-48,1],[-12,-1]].forEach(([dz,sd])=>{
-    const bz=cZ0+dz, bx=sd*(CW/2-1.35);
-    const col=new THREE.Mesh(new THREE.CylinderGeometry(.65,.74,3.5,8),M.ruin);
-    col.rotation.z=Math.PI/2; col.position.set(bx,.52,bz);
-    col.matrixAutoUpdate=false; col.updateMatrix(); grp.add(col);
-    for(let j=0;j<4;j++){
-      const rs=.14+Math.random()*.18;
-      stat(new THREE.BoxGeometry(rs*2,rs,rs*1.4),M.cap,bx+(Math.random()-.5),rs/2,bz+(Math.random()-.5)*2.2);
-    }
-  });
-
-  // ── Instanced torch flames + reposition PointLights ─────────────
-  const flGeo=new THREE.SphereGeometry(.12,5,4);
-  const maxFlm=Math.ceil(cLen/11)+4;
-  const iFlame=new THREE.InstancedMesh(flGeo,M.fire,maxFlm);
-  iFlame.matrixAutoUpdate=false;
-  const cFlames=[];
-  let fi=0; DM.scale.set(1,1,1);
-  // Sconce bracket behind each flame
-  for(let z=cZ0-3; z>cZ1+3&&fi<maxFlm; z-=11,fi++){
-    const sd=fi%2===0?-1:1, fx=sd*(CW/2-.44), fy=CH*.64+.48;
-    stat(new THREE.BoxGeometry(.18,.12,.36),M.cap,sd*(CW/2-.22),fy-.18,z);
-    DM.position.set(fx,fy,z); DM.updateMatrix(); iFlame.setMatrixAt(fi,DM.matrix);
-    cFlames.push({i:fi,x:fx,y:fy,z});
-  }
-  DM.scale.set(0,0,0); DM.updateMatrix();
-  while(fi<maxFlm){ iFlame.setMatrixAt(fi,DM.matrix); fi++; }
-  DM.scale.set(1,1,1);
-  iFlame.instanceMatrix.needsUpdate=true; grp.add(iFlame);
-
-  // Place 4 corridor PointLights evenly along corridor
-  const tSpacing=cLen/5;
-  for(let k=0;k<4;k++){
-    const sd=k%2===0?-1:1;
-    TORCH_LIGHTS[k].position.set(sd*(CW/2-.44), CH*.64+.48, cZ0-tSpacing*(k+1));
-    TORCH_LIGHTS[k].visible=true;
-  }
-
-  // ── Glyph panels on corridor walls ──────────────────────────────
-  const plGeo=new THREE.PlaneGeometry(3.1,3.4);
-  for(let i=0; i<nP; i++){
-    const gi=seq[i], pz=cZ0-9-i*12, sd=i%2===0?-1:1, px=sd*(CW/2-.18);
-    // Frame
-    stat(new THREE.BoxGeometry(.13,4.1,3.6),M.cap,px,3.4,pz);
-    stat(new THREE.BoxGeometry(.13,.36,3.6),M.cap,px,5.38,pz);
-    stat(new THREE.BoxGeometry(.13,.36,3.6),M.cap,px,1.22,pz);
-    stat(new THREE.BoxGeometry(.13,4.1,.36),M.cap,px,3.4,pz+1.88);
-    stat(new THREE.BoxGeometry(.13,4.1,.36),M.cap,px,3.4,pz-1.88);
-    // Panel plane
-    const plane=new THREE.Mesh(plGeo, PMAT[gi]);
-    plane.position.set(px+sd*(-.14),3.4,pz);
-    plane.rotation.y=sd<0?Math.PI/2:-Math.PI/2;
-    plane.matrixAutoUpdate=false; plane.updateMatrix();
-    grp.add(plane);
-    panels.push({z:pz, gi, mesh:plane, hit:false, glowTimer:null});
-  }
-
-  // ── Grand arch ───────────────────────────────────────────────────
-  const wm=tmat(TX.wall,4,2);
-  stat(new THREE.BoxGeometry(CW+.78,.7,.88),wm,0,CH+.35,cZ1+3.75);
-  stat(new THREE.BoxGeometry(1.58,CH,1.0), wm,-CW/2+.9,CH/2,cZ1+3.75);
-  stat(new THREE.BoxGeometry(1.58,CH,1.0), wm, CW/2-.9,CH/2,cZ1+3.75);
-  stat(new THREE.BoxGeometry(CW-2.8,.1,.14),M.gold,0,.025,cZ1+3.5);
-  const archL=new THREE.PointLight(0xf5c040,1.8,12);
-  archL.position.set(0,4.0,cZ1+4.2); grp.add(archL);
-
-  // ── Arena ─────────────────────────────────────────────────────────
-  const aFloor=new THREE.Mesh(new THREE.CylinderGeometry(AR+2,AR+2,.38,22),tmat(TX.arena,8,8));
-  aFloor.position.set(0,-.19,aZ); aFloor.matrixAutoUpdate=false; aFloor.updateMatrix(); grp.add(aFloor);
-
-  const aCeil=new THREE.Mesh(new THREE.CylinderGeometry(AR+1,AR+1,.38,20),tmat(TX.dark,4,4));
-  aCeil.position.set(0,AH+.2,aZ); aCeil.matrixAutoUpdate=false; aCeil.updateMatrix(); grp.add(aCeil);
-
-  const AWSEGS=18;
-  const iWall=new THREE.InstancedMesh(new THREE.BoxGeometry(3.8,AH,.58),tmat(TX.arena,1,2),AWSEGS);
-  iWall.matrixAutoUpdate=false;
-  for(let i=0;i<AWSEGS;i++){
-    const ag=(i/AWSEGS)*Math.PI*2;
-    DM.position.set(Math.sin(ag)*(AR+.4),AH/2,aZ+Math.cos(ag)*(AR+.4));
-    DM.lookAt(new THREE.Vector3(0,AH/2,aZ)); DM.updateMatrix();
-    iWall.setMatrixAt(i,DM.matrix);
-  }
-  iWall.instanceMatrix.needsUpdate=true; grp.add(iWall);
-
-  const iAC=new THREE.InstancedMesh(new THREE.CylinderGeometry(.58,.68,AH-1,10),tmat(TX.wall,1,3),8);
-  const iACp=new THREE.InstancedMesh(new THREE.BoxGeometry(1.9,.28,1.9),M.cap,8);
-  const iAF=new THREE.InstancedMesh(flGeo,M.fire,8);
-  iAC.matrixAutoUpdate=iACp.matrixAutoUpdate=iAF.matrixAutoUpdate=false;
-  const aFlames=[];
-  DM.scale.set(1,1,1);
-  for(let i=0;i<8;i++){
-    const ag=(i/8)*Math.PI*2, cx2=Math.sin(ag)*(AR-1.3), cz2=Math.cos(ag)*(AR-1.3);
-    DM.position.set(cx2,AH/2-.5,aZ+cz2); DM.updateMatrix(); iAC.setMatrixAt(i,DM.matrix);
-    DM.position.set(cx2,AH-.32,aZ+cz2);  DM.updateMatrix(); iACp.setMatrixAt(i,DM.matrix);
-    DM.position.set(cx2,AH*.63,aZ+cz2);  DM.updateMatrix(); iAF.setMatrixAt(i,DM.matrix);
-    aFlames.push({i,x:cx2,y:AH*.63,z:aZ+cz2});
-  }
-  iAC.instanceMatrix.needsUpdate=iACp.instanceMatrix.needsUpdate=iAF.instanceMatrix.needsUpdate=true;
-  grp.add(iAC); grp.add(iACp); grp.add(iAF);
-
-  // Altar
-  cyl(.78,.98,1.8,11,tmat(TX.wall,1,2),0,.9,aZ);
-  cyl(.54,.64,2.4,9,M.cap,0,2.9,aZ);
-  cyl(.86,.68,.55,9,M.cap,0,4.22,aZ);
-  stat(new THREE.CylinderGeometry(.58,.58,.1,14),M.gold,0,4.56,aZ);
-  // Altar top shows last glyph seen
-  const altP=new THREE.Mesh(new THREE.PlaneGeometry(1.45,1.55),
-    new THREE.MeshBasicMaterial({map:GTEX[seq[seq.length-1]],transparent:true,opacity:.84}));
-  altP.position.set(0,4.6,aZ); altP.rotation.x=-Math.PI/2; grp.add(altP);
-
-  ARENA_LIGHT.position.set(0,6,aZ);
-
-  // ── Answer pedestals (4) ─────────────────────────────────────────
-  const pGeo2=new THREE.PlaneGeometry(2.4,2.6);
-  const hGeo=new THREE.BoxGeometry(2.5,2.7,.45);
-  const pAngs=[Math.PI*.25,Math.PI*.75,Math.PI*1.25,Math.PI*1.75];
-  pAngs.forEach((ag,i)=>{
-    const px2=Math.sin(ag)*9.2, pz2=aZ+Math.cos(ag)*9.2;
-    cyl(.6,.74,2.9,9,tmat(TX.wall,1,2),px2,1.45,pz2);
-    cyl(.84,.84,.2,9,M.cap,px2,3.05,pz2);
-    cyl(.68,.6,.36,9,M.cap,px2,3.28,pz2);
-    const plane=new THREE.Mesh(pGeo2,PMAT[0]);
-    plane.position.set(px2,5.0,pz2);
-    plane.lookAt(new THREE.Vector3(0,5.0,aZ));
-    plane.userData.gi=-1;
-    plane.matrixAutoUpdate=false; plane.updateMatrix();
-    grp.add(plane);
-    const hbox=new THREE.Mesh(hGeo,M.inv);
-    hbox.position.copy(plane.position); hbox.rotation.copy(plane.rotation);
-    hbox.userData.gi=-1; hbox.matrixAutoUpdate=false; hbox.updateMatrix();
-    grp.add(hbox);
-    targets.push({plane,hbox});
-  });
-
-  scene.add(grp); worldGrp=grp;
-  return {
-    panels, targets, iFlame, cFlames, iAF, aFlames,
-    cZ1, aZ,
-    smesh: [],   // populated when arena starts
-    cBound:{x0:-3.8,x1:3.8,z0:aZ-1,z1:cZ0},
-    aBound:{x0:-(AR-2.5),x1:AR-2.5,z0:aZ-(AR-2.5),z1:aZ+(AR-2.5)},
-  };
-}
-
-// ── Controls ──────────────────────────────────────────────────────
-const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-const KEYS  = {};
-let alive         = false;
-let pointerLocked = false;
-
-// ── Pointer lock ──────────────────────────────────────────────────
-// Rules for requestPointerLock:
-//   1. Must be called SYNCHRONOUSLY inside a user input event handler.
-//   2. The element must be visible and in the DOM.
-//   3. Only one listener needed — on 'click' of the canvas is most reliable.
-//      'mousedown' alone does NOT work in Firefox (requires 'click').
-//
-// We listen on both 'click' and the lock-hint click so either path works.
-// The call is made directly — NO wrapper function — to stay synchronous.
-
-// ── Pointer lock ──────────────────────────────────────────────────
-// 'click' is used exclusively to REQUEST pointer lock.
-// 'mousedown' is used for shooting — because browsers suppress 'click'
-// events while pointer lock is active, making it unreliable for actions.
-
-C3D.addEventListener('click', () => {
-  if (!alive) return;
-  // Always try to lock on canvas click (corridor or arena)
-  if (!pointerLocked) C3D.requestPointerLock();
-});
-
-LOCKHINT.addEventListener('click', () => {
-  if (!alive) return;
-  C3D.requestPointerLock();
-});
-
-// Shoot on mousedown while locked — fires reliably during pointer lock
-C3D.addEventListener('mousedown', e => {
-  if (!alive || e.button !== 0 || !pointerLocked) return;
-  if (G.phase === 'arena') doShoot();
-});
-
-document.addEventListener('pointerlockchange', () => {
-  pointerLocked = (document.pointerLockElement === C3D);
-  if (pointerLocked) {
-    LOCKHINT.classList.remove('show');
-    C3D.style.cursor = 'none';
-  } else {
-    LOCKHINT.classList.add('show');
-    C3D.style.cursor = 'crosshair';
-  }
-});
-
-document.addEventListener('pointerlockerror', () => {
-  // Lock failed (sandboxed iframe, Firefox, or user denied).
-  // Fall back to drag-to-look and tell the player.
-  pointerLocked = false;
-  C3D.style.cursor = 'crosshair';
-  const p = LOCKHINT.querySelector('p');
-  if (p) p.textContent = 'DRAG TO LOOK  ·  CLICK CANVAS TO TRY AGAIN';
-  LOCKHINT.classList.add('show');
-});
-
-// Mouse look — active while pointer is locked
-document.addEventListener('mousemove', e => {
-  if (!pointerLocked || !alive) return;
-  euler.y -= e.movementX * 0.0022;
-  euler.x  = Math.max(-1.38, Math.min(1.38, euler.x - e.movementY * 0.0022));
-  cam.quaternion.setFromEuler(euler);
-});
-
-// Touch
-let tid=-1,tdist=0,tlx=0,tly=0;
-C3D.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];tid=t.identifier;tdist=0;tlx=t.clientX;tly=t.clientY;},{passive:false});
-C3D.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier!==tid)continue;const dx=t.clientX-tlx,dy=t.clientY-tly;tdist+=Math.abs(dx)+Math.abs(dy);euler.y-=dx*.005;euler.x=Math.max(-1.38,Math.min(1.38,euler.x-dy*.005));cam.quaternion.setFromEuler(euler);tlx=t.clientX;tly=t.clientY;}},{passive:false});
-C3D.addEventListener('touchend',()=>{ if(tdist<8&&alive&&G.phase==='arena') doShoot(); });
-
-// Keyboard
-document.addEventListener('keydown', e => {
-  KEYS[e.code] = true;
-  // Prevent Space from scrolling the page and Shift from browser text-selection quirks
-  if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    e.preventDefault();
-  }
-  if (e.code === 'Escape' && alive) {
-    if(pointerLocked) document.exitPointerLock();
-    if(G.phase==='paused') resumeGame(); else pauseGame();
-    return;
-  }
-  if(G.phase==='arena'){
-    const idx=['Digit1','Digit2','Digit3','Digit4'].indexOf(e.code);
-    if(idx>=0&&G.opts[idx]!=null){ G.pick(G.opts[idx]); trigRecoil(); }
-  }
-});
-document.addEventListener('keyup',e=>{ KEYS[e.code]=false; });
-
-// ── Player physics ────────────────────────────────────────────────
-const EYE_HEIGHT = 1.78;   // standing eye level
-const CEILING    = 9.6;    // corridor / arena ceiling in world units (< CH=10)
-const JUMP_VEL   = 7.0;    // initial upward velocity (units/s)
-const GRAVITY    = 22.0;   // downward acceleration (units/s²)
-let velY         = 0;
-let onGround     = true;
-let spaceWasDown = false;   // track edge: only jump on fresh press, not hold
-
-function moveCam(dt, b) {
-  // Sprint: Shift doubles speed in corridor only.
-  // Disabled in arena — sprinting around pedestals skips the aiming decision
-  // which contaminates reaction time data and breaks research protocol.
-  const inArena  = (G.phase === 'arena');
-  const moving   = KEYS['KeyW']||KEYS['ArrowUp']||KEYS['KeyS']||KEYS['ArrowDown']
-                  ||KEYS['KeyA']||KEYS['ArrowLeft']||KEYS['KeyD']||KEYS['ArrowRight'];
-  const canSprint = moving && !inArena && (KEYS['ShiftLeft'] || KEYS['ShiftRight']);
-  const spd       = canSprint ? 9.0 : 4.2;
-
-  const sy = Math.sin(euler.y), cy = Math.cos(euler.y);
-  if (KEYS['KeyW']||KEYS['ArrowUp'])    { cam.position.x -= sy*spd*dt; cam.position.z -= cy*spd*dt; }
-  if (KEYS['KeyS']||KEYS['ArrowDown'])  { cam.position.x += sy*spd*dt; cam.position.z += cy*spd*dt; }
-  if (KEYS['KeyA']||KEYS['ArrowLeft'])  { cam.position.x -= cy*spd*.7*dt; cam.position.z += sy*spd*.7*dt; }
-  if (KEYS['KeyD']||KEYS['ArrowRight']) { cam.position.x += cy*spd*.7*dt; cam.position.z -= sy*spd*.7*dt; }
-
-  // Jump — only on fresh Space press (edge detect), not while holding
-  const spaceNow = !!(KEYS['Space']);
-  if (spaceNow && !spaceWasDown && onGround) {
-    velY     = JUMP_VEL;
-    onGround = false;
-  }
-  spaceWasDown = spaceNow;
-
-  // Vertical physics
-  if (!onGround) {
-    velY           -= GRAVITY * dt;
-    cam.position.y += velY * dt;
-    // Land
-    if (cam.position.y <= EYE_HEIGHT) {
-      cam.position.y = EYE_HEIGHT;
-      velY           = 0;
-      onGround       = true;
-    }
-    // Ceiling bump — head hits ceiling, kill upward velocity
-    if (cam.position.y >= CEILING) {
-      cam.position.y = CEILING;
-      velY           = Math.min(velY, 0); // allow gravity to pull back down
-    }
-  } else {
-    cam.position.y = EYE_HEIGHT;
-  }
-
-  cam.position.x = Math.max(b.x0, Math.min(b.x1, cam.position.x));
-  cam.position.z = Math.max(b.z0, Math.min(b.z1, cam.position.z));
-}
-function clampArena(az) {
-  const dx = cam.position.x, dz = cam.position.z - az;
-  const d = Math.sqrt(dx*dx + dz*dz), maxR = AR - 2.4;
-  if (d > maxR) {
-    cam.position.x = dx/d * maxR;
-    cam.position.z = az + dz/d * maxR;
-  }
-}
-
-// ── Raycast ───────────────────────────────────────────────────────
-const RC=new THREE.Raycaster(), RD=new THREE.Vector3();
-function doShoot(){
-  if(G.phase!=='arena') return;
-  trigRecoil(); SFX.shoot();
-  cam.getWorldDirection(RD); RC.set(cam.position,RD);
-  const hits=RC.intersectObjects(G.W.smesh,false);
-  if(hits.length&&hits[0].object.userData.gi>=0) G.pick(hits[0].object.userData.gi);
-}
-
-// ── Gun viewmodel (2D canvas overlay) ────────────────────────────
-// Drawn as a top-down FPS view: barrel points straight up toward the crosshair.
-// The gun is centred horizontally so the muzzle aligns with the centre reticle.
-let recoil = 0, mflash = 0, gbob = 0;
-function trigRecoil() { recoil = 1; mflash = 1; }
-
-function drawGun(t) {
-  const W   = GCV.width, H = GCV.height;
-  const dpr = Math.min(devicePixelRatio, 1.5);
-  GCX.clearRect(0, 0, W, H);
-
-  const show = (G.phase === 'arena') || (G.phase === 'busy' && (recoil > 0.01 || mflash > 0.01));
-  if (!show) return;
-
-  GCX.save();
-  GCX.scale(dpr, dpr);
-  const bw = W / dpr, bh = H / dpr;
-
-  // Idle bob and jump offset
-  gbob = Math.sin(t * .0032) * 1.8 + Math.cos(t * .0071) * .7;
-  if (!onGround) gbob = (cam.position.y - EYE_HEIGHT) * 2.5;
-
-  // Recoil: pushes gun DOWN (positive y) when firing
-  const kickY = recoil * 18;
-  recoil = Math.max(0, recoil - .08);
-
-  // Gun origin: centred horizontally, near bottom of canvas
-  const cx = bw * .5;                    // horizontal centre — lines up with crosshair
-  const cy = bh * .92 + gbob + kickY;   // vertical: mostly off-bottom, only top visible
-
-  // ── Barrel (pointing straight up) ────────────────────────
-  const barrelW = bw * .06;             // barrel width
-  const barrelH = bh * .55;             // how far the barrel extends upward
-
-  const bGrad = GCX.createLinearGradient(cx - barrelW, 0, cx + barrelW, 0);
-  bGrad.addColorStop(0,   '#3a2008');
-  bGrad.addColorStop(.35, '#c0883c');
-  bGrad.addColorStop(.65, '#845a12');
-  bGrad.addColorStop(1,   '#3a2008');
-  GCX.fillStyle = bGrad;
-  GCX.fillRect(cx - barrelW * .5, cy - barrelH, barrelW, barrelH);
-
-  // Barrel tip (darker block at muzzle end)
-  GCX.fillStyle = '#1a0c02';
-  GCX.fillRect(cx - barrelW * .5 - 2, cy - barrelH, barrelW + 4, bh * .03);
-
-  // Barrel bore (dark hole at muzzle centre)
-  GCX.fillStyle = '#080402';
-  GCX.beginPath();
-  GCX.arc(cx, cy - barrelH + bh * .015, barrelW * .28, 0, Math.PI * 2);
-  GCX.fill();
-
-  // Highlight line on barrel top
-  GCX.fillStyle = 'rgba(255,200,120,.22)';
-  GCX.fillRect(cx - 1.5, cy - barrelH + bh * .03, 3, barrelH * .7);
-
-  // ── Receiver / body ──────────────────────────────────────
-  const bodyW = bw * .22;
-  const bodyH = bh * .28;
-  const bodyY = cy - barrelH * .3;       // body sits below top of barrel
-
-  const bodyGrad = GCX.createLinearGradient(cx - bodyW * .5, bodyY, cx + bodyW * .5, bodyY);
-  bodyGrad.addColorStop(0,   '#2c1806');
-  bodyGrad.addColorStop(.3,  '#6e4e14');
-  bodyGrad.addColorStop(.7,  '#4e3a0e');
-  bodyGrad.addColorStop(1,   '#2c1806');
-  GCX.fillStyle = bodyGrad;
-
-  // Receiver shape: wider trapezoid
-  GCX.beginPath();
-  GCX.moveTo(cx - bodyW * .5, bodyY);
-  GCX.lineTo(cx + bodyW * .5, bodyY);
-  GCX.lineTo(cx + bodyW * .6, bodyY + bodyH);
-  GCX.lineTo(cx - bodyW * .6, bodyY + bodyH);
-  GCX.closePath();
-  GCX.fill();
-
-  // Egyptian rune on receiver
-  GCX.save();
-  GCX.shadowBlur = 12;
-  GCX.shadowColor = 'rgba(245,162,36,.9)';
-  GCX.strokeStyle = 'rgba(245,178,56,.75)';
-  GCX.lineWidth = 1.6;
-  const rx2 = cx, ry2 = bodyY + bodyH * .5;
-  const rs  = bodyW * .18;
-  GCX.beginPath(); GCX.arc(rx2, ry2, rs, 0, Math.PI * 2); GCX.stroke();
-  GCX.beginPath(); GCX.moveTo(rx2, ry2 - rs); GCX.lineTo(rx2, ry2 + rs); GCX.stroke();
-  GCX.beginPath(); GCX.moveTo(rx2 - rs, ry2); GCX.lineTo(rx2 + rs, ry2); GCX.stroke();
-  GCX.restore();
-
-  // ── Grip ─────────────────────────────────────────────────
-  const gripW = bw * .14;
-  const gripH = bh * .22;
-  const gripY = bodyY + bodyH;
-
-  const gripGrad = GCX.createLinearGradient(cx - gripW * .5, gripY, cx + gripW * .5, gripY);
-  gripGrad.addColorStop(0, '#201004');
-  gripGrad.addColorStop(.5, '#3e2808');
-  gripGrad.addColorStop(1, '#201004');
-  GCX.fillStyle = gripGrad;
-  GCX.beginPath();
-  GCX.moveTo(cx - gripW * .5, gripY);
-  GCX.lineTo(cx + gripW * .5, gripY);
-  GCX.lineTo(cx + gripW * .38, gripY + gripH);
-  GCX.lineTo(cx - gripW * .38, gripY + gripH);
-  GCX.closePath();
-  GCX.fill();
-
-  // Grip texture lines
-  GCX.strokeStyle = 'rgba(0,0,0,.3)';
-  GCX.lineWidth = 1;
-  for (let i = 0; i < 5; i++) {
-    const ly = gripY + gripH * .15 + i * gripH * .15;
-    GCX.beginPath();
-    GCX.moveTo(cx - gripW * .35, ly);
-    GCX.lineTo(cx + gripW * .35, ly);
-    GCX.stroke();
-  }
-
-  // ── Trigger guard ─────────────────────────────────────────
-  GCX.strokeStyle = '#3a2208';
-  GCX.lineWidth = 3;
-  GCX.beginPath();
-  GCX.arc(cx, bodyY + bodyH + 4, bodyW * .22, 0, Math.PI);
-  GCX.stroke();
-
-  // ── Muzzle flash (at barrel tip, top of canvas) ───────────
-  if (mflash > 0) {
-    const fx = cx, fy = cy - barrelH;
-    GCX.save();
-    GCX.shadowBlur = 40;
-    GCX.shadowColor = 'rgba(245,180,56,1)';
-    GCX.fillStyle = `rgba(255,215,80,${mflash * .95})`;
-    GCX.beginPath();
-    GCX.arc(fx, fy, bw * .06 * mflash * 2.2, 0, Math.PI * 2);
-    GCX.fill();
-    // Spokes radiating upward
-    GCX.strokeStyle = `rgba(255,240,120,${mflash * .85})`;
-    GCX.lineWidth = 2;
-    const spokeAngles = [-Math.PI/2, -Math.PI/3, -Math.PI*2/3, -Math.PI/4, -Math.PI*3/4];
-    spokeAngles.forEach(a => {
-      const len = bw * .08 * mflash;
-      GCX.beginPath();
-      GCX.moveTo(fx, fy);
-      GCX.lineTo(fx + Math.cos(a) * len, fy + Math.sin(a) * len);
-      GCX.stroke();
+  <div id="t-jump">JUMP</div>
+  <div id="t-pause">| | PAUSE</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    'use strict';
+    // ================================================================
+    //  GLYPHMIND 3D  |  Three.js r128
+    //  N-Back memory test with Egyptian Hieroglyphs
+    // ================================================================
+
+    // ── DOM refs ─────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const C3D = $('c');
+    const GCV = $('gc');
+    const GCX = GCV.getContext('2d');
+    const GUN = $('gun');
+    const LOCKHINT = $('lockhint');
+    const HUD = $('hud');
+    const NLEVEL = $('nlevel');
+    const BESTLV = $('bestlv');
+    const SEQBOX = $('seqbox');
+    const PROMPT = $('prompt');
+    const STATSBAR = $('statsbar');
+    const ABAR = $('abar');
+    const SPANEL = $('spanel');
+    const ACCBAR = $('accbar');
+    const PMENU = $('pm');
+    const PM_NVAL = $('pm-nval');
+    const FADE = $('fade');
+    const RFL = $('rfl');
+    const RFL_TXT = $('rfl-txt');
+    const TUT = $('tut');
+    const TUT_TXT = $('tut-txt');
+    const TUT_DOTS = $('tut-dots');
+    const TUT_PREV = $('tut-prev');
+    const TUT_NEXT = $('tut-next');
+    const XRING = $('xring');
+    const TITLE = $('tt');
+
+    // ── Three.js renderer ─────────────────────────────────────────────
+    const renderer = new THREE.WebGLRenderer({
+      canvas: C3D, antialias: false,
+      powerPreference: 'high-performance', stencil: false
     });
-    GCX.restore();
-    mflash = Math.max(0, mflash - .12);
-  }
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.shadowMap.enabled = false;
+    renderer.toneMapping = THREE.NoToneMapping;
 
-  GCX.restore();
-}
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x0b0804, 16, 92);
 
-// ── Accessibility state ───────────────────────────────────────────
-// ACC.buttons: whether the bottom answer-button bar is shown in the trial room.
-// Default ON — players can turn it off for a pure "aim-and-shoot" experience.
-const ACC={labels:false,large:false,keys:false,side:false,hc:false,buttons:true};
+    const cam = new THREE.PerspectiveCamera(72, 1, 0.1, 100);
+    cam.position.set(0, 1.78, 3.5);
 
-function accToggle(key){
-  ACC[key]=!ACC[key];
-  const el=$('t-'+key); if(el){el.classList.toggle('on',ACC[key]);el.setAttribute('aria-checked',String(ACC[key]));}
-  const acb=$('acb-'+key); if(acb) acb.classList.toggle('on',ACC[key]);
-  document.body.classList.toggle('acc-'+key,ACC[key]);
-  if(G.phase==='arena') buildAnswerUI(G.opts);
-}
-
-// Wire all toggles in pause menu + quick bar
-['labels','large','keys','side','hc','buttons'].forEach(k=>{
-  const el=$('t-'+k);
-  if(el) el.addEventListener('click',()=>accToggle(k));
-  const acb=$('acb-'+k);
-  if(acb) acb.addEventListener('click',()=>accToggle(k));
-});
-
-// ── Research data ─────────────────────────────────────────────────
-const RES={
-  pid:'', trials:[], sessionStart:0, trialStart:0,
-  begin(){ this.trials=[]; this.sessionStart=Date.now(); },
-  startTrial(){ this.trialStart=Date.now(); },
-  record(n,correct,chosen,ok){
-    this.trials.push({
-      pid:this.pid||'anon', trial:this.trials.length+1, n,
-      correct:GLYPHS[correct].id, chosen:GLYPHS[chosen].id,
-      hit:ok?1:0, rt_ms:Date.now()-this.trialStart,
-      elapsed_s:((Date.now()-this.sessionStart)/1000).toFixed(1)
-    });
-    this.updateBar();
-  },
-  updateBar(){
-    const n=this.trials.length; if(!n){STATSBAR.style.display='none';return;}
-    const hits=this.trials.filter(t=>t.hit).length;
-    const last=this.trials[n-1];
-    STATSBAR.textContent=`T${n}  N=${last.n}  ${Math.round(hits/n*100)}% HIT  RT ${last.rt_ms}ms`;
-    STATSBAR.style.display='block';
-  },
-  exportCSV(){
-    if(!this.trials.length){alert('No trial data yet.');return;}
-    const hdr='pid,trial,n,correct,chosen,hit,rt_ms,elapsed_s';
-    const rows=this.trials.map(t=>Object.values(t).join(','));
-    const csv=[hdr,...rows].join('\n');
-    const a=document.createElement('a');
-    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-    a.download=`glyphmind_${this.pid||'anon'}_${Date.now()}.csv`;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-  }
-};
-
-// PID input (no inline handlers)
-const pidInput=$('pid');
-pidInput.addEventListener('input',function(){
-  this.value=this.value.replace(/[^\w\-]/g,'').slice(0,32);
-  RES.pid=this.value;
-});
-
-// ── Pause/resume ──────────────────────────────────────────────────
-let pmN=1;
-function pauseGame(){
-  if(G.phase==='busy'||G.phase==='title') return;
-  G._prevPhase=G.phase; G.phase='paused';
-  PMENU.classList.add('show'); PM_NVAL.textContent=pmN;
-  if(pointerLocked) document.exitPointerLock();
-}
-function resumeGame(){
-  G.phase=G._prevPhase||'corridor';
-  PMENU.classList.remove('show');
-  setTimeout(() => { C3D.requestPointerLock(); }, 80);
-}
-
-$('pm-resume').addEventListener('click',resumeGame);
-$('pm-restart').addEventListener('click',()=>{
-  PMENU.classList.remove('show'); G.N=1; pmN=1; PM_NVAL.textContent=1;
-  RES.begin(); fdOut(()=>G.start(),360);
-});
-$('pm-nminus').addEventListener('click',()=>{ pmN=Math.max(1,pmN-1); PM_NVAL.textContent=pmN; });
-$('pm-nplus').addEventListener('click', ()=>{ pmN=Math.min(15,pmN+1);PM_NVAL.textContent=pmN; });
-$('pm-setn').addEventListener('click',()=>{ PMENU.classList.remove('show'); G.N=pmN; fdOut(()=>G.start(),360); });
-$('pm-tutorial').addEventListener('click',()=>{ PMENU.classList.remove('show'); showTutorial(false); });
-$('pm-export').addEventListener('click',()=>RES.exportCSV());
-
-// ── HUD ───────────────────────────────────────────────────────────
-function hudUpdate(){
-  NLEVEL.textContent=`N-BACK: ${G.N}`;
-  BESTLV.textContent=`BEST: ${G.bestN}`;
-  if(!G.seq.length){SEQBOX.innerHTML='';return;}
-  // Sequence dots — names only when labels are on
-  const dots=G.seq.map((gi,i)=>{
-    if(i<G.mem.length){
-      return ACC.labels
-        ? `<span style="color:rgba(245,180,60,.96)">${GLYPHS[gi].id}</span>`
-        : `<span style="color:rgba(245,180,60,.9);font-size:1.1em">&#9679;</span>`;
+    function onResize() {
+      renderer.setSize(innerWidth, innerHeight);
+      cam.aspect = innerWidth / innerHeight;
+      cam.updateProjectionMatrix();
+      const dpr = Math.min(devicePixelRatio, 1.5);
+      GCV.width = (GUN.offsetWidth || 260) * dpr;
+      GCV.height = (GUN.offsetHeight || 195) * dpr;
     }
-    return `<span style="color:rgba(55,40,11,.36)">&#9675;</span>`;
-  }).join(' ');
-  let html=`<div style="font-size:.72em;color:rgba(128,92,24,.52);letter-spacing:.12em;margin-bottom:2px">${G.mem.length}/${G.seq.length} GLYPHS</div>${dots}`;
-  if(G.phase==='arena'){
-    html+=ACC.labels
-      ? `<div style="margin-top:4px;font-size:.74em;color:rgba(155,110,38,.6)">LAST: <b style="color:rgba(245,180,60,.9)">${GLYPHS[G.seq[G.seq.length-1]].id}</b></div>`
-      : `<div style="margin-top:4px;font-size:.74em;color:rgba(155,110,38,.6)">N=${G.N} steps back</div>`;
-  }
-  SEQBOX.innerHTML=html;
-}
+    onResize();
+    window.addEventListener('resize', onResize);
 
-// ── Answer UI ─────────────────────────────────────────────────────
-function buildAnswerUI(opts){
-  ABAR.innerHTML='';
-  // Respect ACC.buttons toggle — if off, hide the bar and only keep key/side access
-  if(!ACC.buttons){ ABAR.classList.remove('show'); }
-  else {
-    const sz=ACC.large?70:56;
-    opts.forEach((gi,i)=>{
-      const btn=document.createElement('button'); btn.className='ab';
-      btn.setAttribute('aria-label',`Select ${GLYPHS[gi].name} (option ${i+1})`);
-      const cv=document.createElement('canvas'); cv.width=cv.height=sz;
-      drawTile(cv.getContext('2d'),sz,gi,false);
-      cv.style.width=cv.style.height=sz+'px'; btn.appendChild(cv);
-      const lbl=document.createElement('span'); lbl.className='al';
-      lbl.textContent=GLYPHS[gi].id; btn.appendChild(lbl);
-      const kh=document.createElement('span'); kh.className='ak';
-      kh.textContent=`[${i+1}]`; btn.appendChild(kh);
-      btn.addEventListener('click',()=>{G.pick(gi);trigRecoil();SFX.shoot();});
-      ABAR.appendChild(btn);
+    // ── Lights ────────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0x1a0d05, 0.9));
+
+    const TORCH_LIGHTS = Array.from({ length: 4 }, () => {
+      const pl = new THREE.PointLight(0xff7a18, 2.8, 18);
+      pl.visible = false;
+      scene.add(pl);
+      return pl;
     });
-    ABAR.classList.add('show');
-  }
 
-  SPANEL.innerHTML='';
-  if(!ACC.side){SPANEL.classList.remove('show');return;}
-  opts.forEach((gi,i)=>{
-    const btn=document.createElement('button'); btn.className='sp';
-    btn.setAttribute('aria-label',`Option ${i+1}: ${GLYPHS[gi].name}`);
-    const cv=document.createElement('canvas'); cv.width=cv.height=52;
-    drawTile(cv.getContext('2d'),52,gi,false);
-    cv.style.width=cv.style.height='52px'; btn.appendChild(cv);
-    const sk=document.createElement('span'); sk.className='sk';
-    sk.textContent=`[${i+1}] ${GLYPHS[gi].id}`; btn.appendChild(sk);
-    btn.addEventListener('click',()=>{G.pick(gi);trigRecoil();SFX.shoot();});
-    SPANEL.appendChild(btn);
-  });
-  SPANEL.classList.add('show');
-}
+    const ARENA_LIGHT = new THREE.PointLight(0xf5c040, 3.5, 30);
+    ARENA_LIGHT.visible = false;
+    scene.add(ARENA_LIGHT);
 
-// ── Sequence generator ────────────────────────────────────────────
-// N-back: sequence length = N+3, so correct = seq[2] always
-function genSeq(N){
-  const len=N+3, s=[];
-  for(let i=0;i<len;i++){
-    let g, tries=0;
-    do{ g=~~(Math.random()*N_GLYPHS); tries++; }
-    while(s.length&&g===s[s.length-1]&&tries<30);
-    s.push(g);
-  }
-  return s;
-}
-function shuf(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
-
-// ── Fade utilities ────────────────────────────────────────────────
-function fdOut(cb,ms=540){ FADE.style.transition=`opacity ${ms}ms ease`;FADE.style.opacity='1';setTimeout(cb,ms); }
-function fdIn(ms=600){ setTimeout(()=>{FADE.style.transition=`opacity ${ms}ms ease`;FADE.style.opacity='0';},30); }
-function showResult(ok,text,cb){ RFL.className=`show ${ok?'ok':'no'}`;RFL_TXT.textContent=text;setTimeout(()=>{RFL.className='';if(cb)cb();},ok?1200:1900); }
-
-// ── Game state machine ────────────────────────────────────────────
-const G={
-  phase:'title', N:1, bestN:1,
-  seq:[], mem:[], opts:[], correct:-1,
-  W:null, _prevPhase:'corridor',
-
-  start(){
-    this.phase='busy'; this.mem=[];
-    // Cancel any pending glow timers from previous level
-    if(this.W&&this.W.panels) this.W.panels.forEach(p=>{ if(p.glowTimer) clearTimeout(p.glowTimer); });
-    this.seq=genSeq(this.N);
-    // correct answer is ALWAYS seq[2] when len=N+3
-    this.correct=this.seq[2];
-    this.W=buildLevel(this.seq);
-    cam.position.set(0, EYE_HEIGHT, 3.5);
-    euler.set(0, 0, 0);
-    cam.quaternion.setFromEuler(euler);
-    velY         = 0;
-    onGround     = true;
-    spaceWasDown = false;
-    GUN.style.display='none';
-    ABAR.classList.remove('show'); SPANEL.classList.remove('show');
-    ACCBAR.classList.remove('show'); XRING.classList.remove('aim');
-    ARENA_LIGHT.visible=false;
-    hudUpdate(); fdIn(580);
-    setTimeout(()=>{
-      this.phase='corridor';
-      PROMPT.textContent='WALK FORWARD  ·  MEMORIZE THE GLYPHS';
-    },660);
-  },
-
-  trigPanel(p, silent=false) {
-    if (p.hit) return;
-    p.hit = true;
-    if (!silent) SFX.panel();
-    this.mem.push(p.gi);
-    if (GMAT) p.mesh.material = GMAT[p.gi];
-    if (p.glowTimer) clearTimeout(p.glowTimer);
-    p.glowTimer = setTimeout(() => { if (p.mesh && PMAT) p.mesh.material = PMAT[p.gi]; }, 900);
-    // Update corridor prompt so participant knows their progress in the sequence
-    const seen  = this.mem.length;
-    const total = this.seq.length;
-    if (!silent && G.phase === 'corridor') {
-      if (seen === total) {
-        PROMPT.textContent = `ALL ${total} GLYPHS SEEN  ·  ENTER THE CHAMBER`;
-      } else {
-        PROMPT.textContent = `GLYPH ${seen} OF ${total}  ·  KEEP WALKING`;
+    // ── Web Audio (synthesised, no files) ────────────────────────────
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
       }
     }
-    hudUpdate();
-  },
+    function beep(freq, type, dur, vol = 0.16, delay = 0) {
+      if (!audioCtx) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + delay + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime + delay);
+      o.stop(audioCtx.currentTime + delay + dur);
+    }
+    const SFX = {
+      panel: () => { beep(320, 'sine', 0.2, 0.13); beep(480, 'sine', 0.16, 0.07, 0.04); },
+      enter: () => { [220, 330, 440, 660].forEach((f, i) => beep(f, 'sine', 0.5, 0.11, i * 0.06)); },
+      shoot: () => { beep(80, 'sawtooth', 0.12, 0.32); beep(120, 'square', 0.07, 0.18, 0.03); },
+      correct: () => { [523, 659, 784, 1047].forEach((f, i) => beep(f, 'sine', 0.4, 0.14, i * 0.07)); },
+      wrong: () => { beep(180, 'sawtooth', 0.3, 0.26); beep(160, 'sawtooth', 0.2, 0.24, 0.06); },
+    };
 
-  enterArena(){
-    if(this.phase!=='corridor') return;
-    this.phase='arena'; SFX.enter();
-    // Flush any unhit panels silently (player walked too fast)
-    this.W.panels.forEach(p=>{ if(!p.hit) this.trigPanel(p,true); });
+    // ── Stone texture factory ─────────────────────────────────────────
+    function makeStone(r, g, b, tiles = 4) {
+      const S = 512, cv = document.createElement('canvas');
+      cv.width = cv.height = S;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(0, 0, S, S);
+      const id = ctx.getImageData(0, 0, S, S), d = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 48;
+        d[i] = Math.max(0, Math.min(255, d[i] + n));
+        d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n * 0.68));
+        d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n * 0.42));
+      }
+      ctx.putImageData(id, 0, 0);
+      const ts = S / tiles;
+      ctx.strokeStyle = 'rgba(6,4,1,.54)'; ctx.lineWidth = 3;
+      for (let y = ts; y < S; y += ts) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(S, y); ctx.stroke(); }
+      ctx.lineWidth = 2.2;
+      for (let row = 0; row <= tiles; row++) {
+        const off = (row % 2) * ts * 0.65;
+        for (let x = off; x < S + ts; x += ts * 1.5) {
+          ctx.beginPath(); ctx.moveTo(x, row * ts); ctx.lineTo(x, (row + 1) * ts); ctx.stroke();
+        }
+      }
+      ctx.strokeStyle = 'rgba(4,2,1,.44)'; ctx.lineWidth = 1.1;
+      for (let c = 0; c < 14; c++) {
+        let cx = Math.random() * S, cy = Math.random() * S;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        for (let s = 0; s < 4 + ~~(Math.random() * 5); s++) {
+          cx += (Math.random() - 0.5) * 42; cy += (Math.random() - 0.5) * 42; ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      return tex;
+    }
 
-    // Build decoy pool: exclude ALL glyphs in the sequence to prevent
-    // accidental n-back matches in the distractors
-    const inSeq=new Set(this.seq);
-    let pool=[]; for(let g=0;g<N_GLYPHS;g++) if(!inSeq.has(g)) pool.push(g);
-    if(pool.length<3){ pool=[]; for(let g=0;g<N_GLYPHS;g++) if(g!==this.correct) pool.push(g); }
-    this.opts=shuf([this.correct,...shuf(pool).slice(0,3)]);
+    const TX = {
+      wall: makeStone(54, 40, 20),
+      floor: makeStone(40, 29, 13),
+      ceil: makeStone(26, 18, 8),
+      dark: makeStone(22, 14, 6),
+      arena: makeStone(48, 34, 16),
+    };
 
-    // Assign glyphs to pedestals
-    this.W.smesh=[];
-    this.W.targets.forEach((tgt,i)=>{
-      const gi=this.opts[i];
-      tgt.plane.material=GMAT[gi];
-      tgt.plane.userData.gi=gi; tgt.hbox.userData.gi=gi;
-      this.W.smesh.push(tgt.plane,tgt.hbox);
+    // ── Shared materials ──────────────────────────────────────────────
+    function bmat(col) { return new THREE.MeshBasicMaterial({ color: col }); }
+    const M = {
+      cap: bmat(0x2a1a08),
+      gold: bmat(0xf5c040),
+      fire: bmat(0xff8c22),
+      ruin: new THREE.MeshLambertMaterial({ color: 0x7c5e30 }),
+      inv: new THREE.MeshBasicMaterial({ visible: false, depthWrite: false }),
+    };
+    function tmat(tex, rx, ry) {
+      const t = tex.clone(); t.repeat.set(rx, ry); t.needsUpdate = true;
+      return new THREE.MeshLambertMaterial({ map: t });
+    }
+
+    // ── Egyptian Hieroglyphs ──────────────────────────────────────────
+    const GLYPHS = [
+      { ch: '\u{13080}', id: 'EYE', name: 'Eye' },
+      { ch: '\u{130D0}', id: 'MOUTH', name: 'Mouth' },
+      { ch: '\u{130D2}', id: 'HAND', name: 'Hand' },
+      { ch: '\u{1312D}', id: 'OWL', name: 'Owl' },
+      { ch: '\u{13192}', id: 'FEATHER', name: 'Feather' },
+      { ch: '\u{13170}', id: 'COBRA', name: 'Cobra' },
+      { ch: '\u{13171}', id: 'VIPER', name: 'Viper' },
+      { ch: '\u{131CD}', id: 'WATER', name: 'Water' },
+      { ch: '\u{131D8}', id: 'STAR', name: 'Star' },
+      { ch: '\u{131E0}', id: 'LOAF', name: 'Loaf' },
+      { ch: '\u{131BC}', id: 'SUN', name: 'Sun' },
+      { ch: '\u{13124}', id: 'DJED', name: 'Djed' },
+    ];
+    const N_GLYPHS = GLYPHS.length;
+
+    function drawTile(ctx, S, gi, glow) {
+      ctx.fillStyle = '#1e1409'; ctx.fillRect(0, 0, S, S);
+      const id = ctx.getImageData(0, 0, S, S), d = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 34;
+        d[i] = Math.max(0, Math.min(255, d[i] + n));
+        d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n * 0.65));
+        d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n * 0.38));
+      }
+      ctx.putImageData(id, 0, 0);
+      ctx.strokeStyle = 'rgba(128,82,16,.68)'; ctx.lineWidth = 5; ctx.strokeRect(3, 3, S - 6, S - 6);
+      ctx.strokeStyle = 'rgba(68,46,12,.32)'; ctx.lineWidth = 2; ctx.strokeRect(10, 10, S - 20, S - 20);
+      [[3, 3], [S - 3, 3], [3, S - 3], [S - 3, S - 3]].forEach(([cx, cy]) => {
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 11);
+        g.addColorStop(0, 'rgba(4,2,1,.52)'); g.addColorStop(1, 'rgba(4,2,1,0)');
+        ctx.fillStyle = g; ctx.fillRect(cx - 11, cy - 11, 22, 22);
+      });
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 0.7;
+      for (let y = 14; y < S - 14; y += 5) { ctx.beginPath(); ctx.moveTo(14, y); ctx.lineTo(S - 14, y); ctx.stroke(); }
+      const fs = Math.floor(S * 0.56);
+      ctx.font = `${fs}px "Noto Sans Egyptian Hieroglyphs",serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (glow) {
+        ctx.save(); ctx.shadowBlur = 24; ctx.shadowColor = 'rgba(245,160,40,.95)';
+        ctx.fillStyle = 'rgba(245,202,82,1)';
+        ctx.fillText(GLYPHS[gi].ch, S / 2, S * 0.46);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(218,164,52,.84)';
+        ctx.fillText(GLYPHS[gi].ch, S / 2, S * 0.46);
+      }
+    }
+
+    let PTEX, GTEX, PMAT, GMAT;
+
+    // ── World geometry ────────────────────────────────────────────────
+    const CW = 9, CH = 10, AH = 13, AR = 17;
+    let worldGrp = null;
+    const DM = new THREE.Object3D();
+
+    function disposeGrp(grp) {
+      grp.traverse(o => {
+        if (!o.isMesh && !o.isInstancedMesh) return;
+        if (o.geometry) o.geometry.dispose();
+        const mm = Array.isArray(o.material) ? o.material : [o.material];
+        mm.forEach(m => { if (m) { if (m.map) m.map.dispose(); m.dispose(); } });
+      });
+    }
+
+    function buildLevel(seq) {
+      if (worldGrp) { disposeGrp(worldGrp); scene.remove(worldGrp); }
+      TORCH_LIGHTS.forEach(l => l.visible = false);
+      ARENA_LIGHT.visible = false;
+
+      const grp = new THREE.Group();
+      const panels = [];
+      const targets = [];
+
+      const nP = seq.length;
+      const cLen = nP * 12 + 28;
+      const cZ0 = 4.0;
+      const cZ1 = cZ0 - cLen;
+      const aZ = cZ1 - 16;
+
+      function stat(geo, mat, x, y, z, ry = 0) {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(x, y, z); if (ry) m.rotation.y = ry;
+        m.matrixAutoUpdate = false; m.updateMatrix(); grp.add(m); return m;
+      }
+      function cyl(rt, rb, h, seg, mat, x, y, z) { return stat(new THREE.CylinderGeometry(rt, rb, h, seg), mat, x, y, z); }
+
+      const rH = Math.ceil(cLen / 5);
+      stat(new THREE.BoxGeometry(CW, .4, cLen), tmat(TX.floor, 5, rH), 0, -.2, cZ0 - cLen / 2);
+      stat(new THREE.BoxGeometry(CW, .4, cLen), tmat(TX.ceil, 4, rH), 0, CH + .2, cZ0 - cLen / 2);
+      stat(new THREE.BoxGeometry(.4, CH, cLen), tmat(TX.wall, rH, 2), -CW / 2, CH / 2, cZ0 - cLen / 2);
+      stat(new THREE.BoxGeometry(.4, CH, cLen), tmat(TX.wall, rH, 2), CW / 2, CH / 2, cZ0 - cLen / 2);
+      stat(new THREE.BoxGeometry(CW + 1, CH, .4), tmat(TX.dark, 4, 2), 0, CH / 2, cZ1 - .2);
+
+      const leftPZ = new Set(), rightPZ = new Set();
+      for (let i = 0; i < nP; i++) {
+        const pz = Math.round(cZ0 - 9 - i * 12);
+        (i % 2 === 0 ? leftPZ : rightPZ).add(pz);
+      }
+      function blocks(set, z) { for (let d = -4; d <= 4; d++) if (set.has(Math.round(z) + d)) return true; return false; }
+
+      const maxPil = Math.floor(cLen / 14) * 2 + 4;
+      const iPil = new THREE.InstancedMesh(new THREE.BoxGeometry(1.2, CH, .78), M.cap, maxPil);
+      const iCap = new THREE.InstancedMesh(new THREE.BoxGeometry(1.5, .6, 1.0), M.cap, maxPil);
+      iPil.matrixAutoUpdate = iCap.matrixAutoUpdate = false;
+      let pi = 0; DM.scale.set(1, 1, 1);
+      for (let z = cZ0 - 5; z > cZ1 + 3; z -= 14) {
+        if (!blocks(leftPZ, z) && pi < maxPil - 1) {
+          DM.position.set(-CW / 2 + .6, CH / 2, z); DM.updateMatrix(); iPil.setMatrixAt(pi, DM.matrix);
+          DM.position.set(-CW / 2 + .6, CH + .09, z); DM.updateMatrix(); iCap.setMatrixAt(pi, DM.matrix);
+          pi++;
+        }
+        if (!blocks(rightPZ, z) && pi < maxPil) {
+          DM.position.set(CW / 2 - .6, CH / 2, z); DM.updateMatrix(); iPil.setMatrixAt(pi, DM.matrix);
+          DM.position.set(CW / 2 - .6, CH + .09, z); DM.updateMatrix(); iCap.setMatrixAt(pi, DM.matrix);
+          pi++;
+        }
+      }
+      DM.scale.set(0, 0, 0); DM.updateMatrix();
+      while (pi < maxPil) { iPil.setMatrixAt(pi, DM.matrix); iCap.setMatrixAt(pi, DM.matrix); pi++; }
+      DM.scale.set(1, 1, 1);
+      iPil.instanceMatrix.needsUpdate = iCap.instanceMatrix.needsUpdate = true;
+      grp.add(iPil); grp.add(iCap);
+
+      for (let z = cZ0 - 5; z > cZ1 + 3; z -= 28)
+        stat(new THREE.BoxGeometry(CW - .5, .38, .6), M.cap, 0, CH + .03, z);
+
+      [[-34, -1], [-22, 1], [-48, 1], [-12, -1]].forEach(([dz, sd]) => {
+        const bz = cZ0 + dz, bx = sd * (CW / 2 - 1.35);
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(.65, .74, 3.5, 8), M.ruin);
+        col.rotation.z = Math.PI / 2; col.position.set(bx, .52, bz);
+        col.matrixAutoUpdate = false; col.updateMatrix(); grp.add(col);
+        for (let j = 0; j < 4; j++) {
+          const rs = .14 + Math.random() * .18;
+          stat(new THREE.BoxGeometry(rs * 2, rs, rs * 1.4), M.cap, bx + (Math.random() - .5), rs / 2, bz + (Math.random() - .5) * 2.2);
+        }
+      });
+
+      const flGeo = new THREE.SphereGeometry(.12, 5, 4);
+      const maxFlm = Math.ceil(cLen / 11) + 4;
+      const iFlame = new THREE.InstancedMesh(flGeo, M.fire, maxFlm);
+      iFlame.matrixAutoUpdate = false;
+      const cFlames = [];
+      let fi = 0; DM.scale.set(1, 1, 1);
+      for (let z = cZ0 - 3; z > cZ1 + 3 && fi < maxFlm; z -= 11, fi++) {
+        const sd = fi % 2 === 0 ? -1 : 1, fx = sd * (CW / 2 - .44), fy = CH * .64 + .48;
+        stat(new THREE.BoxGeometry(.18, .12, .36), M.cap, sd * (CW / 2 - .22), fy - .18, z);
+        DM.position.set(fx, fy, z); DM.updateMatrix(); iFlame.setMatrixAt(fi, DM.matrix);
+        cFlames.push({ i: fi, x: fx, y: fy, z });
+      }
+      DM.scale.set(0, 0, 0); DM.updateMatrix();
+      while (fi < maxFlm) { iFlame.setMatrixAt(fi, DM.matrix); fi++; }
+      DM.scale.set(1, 1, 1);
+      iFlame.instanceMatrix.needsUpdate = true; grp.add(iFlame);
+
+      const tSpacing = cLen / 5;
+      for (let k = 0; k < 4; k++) {
+        const sd = k % 2 === 0 ? -1 : 1;
+        TORCH_LIGHTS[k].position.set(sd * (CW / 2 - .44), CH * .64 + .48, cZ0 - tSpacing * (k + 1));
+        TORCH_LIGHTS[k].visible = true;
+      }
+
+      const plGeo = new THREE.PlaneGeometry(3.1, 3.4);
+      for (let i = 0; i < nP; i++) {
+        const gi = seq[i], pz = cZ0 - 9 - i * 12, sd = i % 2 === 0 ? -1 : 1, px = sd * (CW / 2 - .18);
+        stat(new THREE.BoxGeometry(.13, 4.1, 3.6), M.cap, px, 3.4, pz);
+        stat(new THREE.BoxGeometry(.13, .36, 3.6), M.cap, px, 5.38, pz);
+        stat(new THREE.BoxGeometry(.13, .36, 3.6), M.cap, px, 1.22, pz);
+        stat(new THREE.BoxGeometry(.13, 4.1, .36), M.cap, px, 3.4, pz + 1.88);
+        stat(new THREE.BoxGeometry(.13, 4.1, .36), M.cap, px, 3.4, pz - 1.88);
+        const plane = new THREE.Mesh(plGeo, PMAT[gi]);
+        plane.position.set(px + sd * (-.14), 3.4, pz);
+        plane.rotation.y = sd < 0 ? Math.PI / 2 : -Math.PI / 2;
+        plane.matrixAutoUpdate = false; plane.updateMatrix();
+        grp.add(plane);
+        panels.push({ z: pz, gi, mesh: plane, hit: false, glowTimer: null });
+      }
+
+      const wm = tmat(TX.wall, 4, 2);
+      stat(new THREE.BoxGeometry(CW + .78, .7, .88), wm, 0, CH + .35, cZ1 + 3.75);
+      stat(new THREE.BoxGeometry(1.58, CH, 1.0), wm, -CW / 2 + .9, CH / 2, cZ1 + 3.75);
+      stat(new THREE.BoxGeometry(1.58, CH, 1.0), wm, CW / 2 - .9, CH / 2, cZ1 + 3.75);
+      stat(new THREE.BoxGeometry(CW - 2.8, .1, .14), M.gold, 0, .025, cZ1 + 3.5);
+      const archL = new THREE.PointLight(0xf5c040, 1.8, 12);
+      archL.position.set(0, 4.0, cZ1 + 4.2); grp.add(archL);
+
+      const aFloor = new THREE.Mesh(new THREE.CylinderGeometry(AR + 2, AR + 2, .38, 22), tmat(TX.arena, 8, 8));
+      aFloor.position.set(0, -.19, aZ); aFloor.matrixAutoUpdate = false; aFloor.updateMatrix(); grp.add(aFloor);
+
+      const aCeil = new THREE.Mesh(new THREE.CylinderGeometry(AR + 1, AR + 1, .38, 20), tmat(TX.dark, 4, 4));
+      aCeil.position.set(0, AH + .2, aZ); aCeil.matrixAutoUpdate = false; aCeil.updateMatrix(); grp.add(aCeil);
+
+      const AWSEGS = 18;
+      const iWall = new THREE.InstancedMesh(new THREE.BoxGeometry(3.8, AH, .58), tmat(TX.arena, 1, 2), AWSEGS);
+      iWall.matrixAutoUpdate = false;
+      for (let i = 0; i < AWSEGS; i++) {
+        const ag = (i / AWSEGS) * Math.PI * 2;
+        DM.position.set(Math.sin(ag) * (AR + .4), AH / 2, aZ + Math.cos(ag) * (AR + .4));
+        DM.lookAt(new THREE.Vector3(0, AH / 2, aZ)); DM.updateMatrix();
+        iWall.setMatrixAt(i, DM.matrix);
+      }
+      iWall.instanceMatrix.needsUpdate = true; grp.add(iWall);
+
+      const iAC = new THREE.InstancedMesh(new THREE.CylinderGeometry(.58, .68, AH - 1, 10), tmat(TX.wall, 1, 3), 8);
+      const iACp = new THREE.InstancedMesh(new THREE.BoxGeometry(1.9, .28, 1.9), M.cap, 8);
+      const iAF = new THREE.InstancedMesh(flGeo, M.fire, 8);
+      iAC.matrixAutoUpdate = iACp.matrixAutoUpdate = iAF.matrixAutoUpdate = false;
+      const aFlames = [];
+      DM.scale.set(1, 1, 1);
+      for (let i = 0; i < 8; i++) {
+        const ag = (i / 8) * Math.PI * 2, cx2 = Math.sin(ag) * (AR - 1.3), cz2 = Math.cos(ag) * (AR - 1.3);
+        DM.position.set(cx2, AH / 2 - .5, aZ + cz2); DM.updateMatrix(); iAC.setMatrixAt(i, DM.matrix);
+        DM.position.set(cx2, AH - .32, aZ + cz2); DM.updateMatrix(); iACp.setMatrixAt(i, DM.matrix);
+        DM.position.set(cx2, AH * .63, aZ + cz2); DM.updateMatrix(); iAF.setMatrixAt(i, DM.matrix);
+        aFlames.push({ i, x: cx2, y: AH * .63, z: aZ + cz2 });
+      }
+      iAC.instanceMatrix.needsUpdate = iACp.instanceMatrix.needsUpdate = iAF.instanceMatrix.needsUpdate = true;
+      grp.add(iAC); grp.add(iACp); grp.add(iAF);
+
+      cyl(.78, .98, 1.8, 11, tmat(TX.wall, 1, 2), 0, .9, aZ);
+      cyl(.54, .64, 2.4, 9, M.cap, 0, 2.9, aZ);
+      cyl(.86, .68, .55, 9, M.cap, 0, 4.22, aZ);
+      stat(new THREE.CylinderGeometry(.58, .58, .1, 14), M.gold, 0, 4.56, aZ);
+      const altP = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 1.55),
+        new THREE.MeshBasicMaterial({ map: GTEX[seq[seq.length - 1]], transparent: true, opacity: .84 }));
+      altP.position.set(0, 4.6, aZ); altP.rotation.x = -Math.PI / 2; grp.add(altP);
+
+      ARENA_LIGHT.position.set(0, 6, aZ);
+
+      const pGeo2 = new THREE.PlaneGeometry(2.4, 2.6);
+      const hGeo = new THREE.BoxGeometry(2.5, 2.7, .45);
+      const pAngs = [Math.PI * .25, Math.PI * .75, Math.PI * 1.25, Math.PI * 1.75];
+      pAngs.forEach((ag, i) => {
+        const px2 = Math.sin(ag) * 9.2, pz2 = aZ + Math.cos(ag) * 9.2;
+        cyl(.6, .74, 2.9, 9, tmat(TX.wall, 1, 2), px2, 1.45, pz2);
+        cyl(.84, .84, .2, 9, M.cap, px2, 3.05, pz2);
+        cyl(.68, .6, .36, 9, M.cap, px2, 3.28, pz2);
+        const plane = new THREE.Mesh(pGeo2, PMAT[0]);
+        plane.position.set(px2, 5.0, pz2);
+        plane.lookAt(new THREE.Vector3(0, 5.0, aZ));
+        plane.userData.gi = -1;
+        plane.matrixAutoUpdate = false; plane.updateMatrix();
+        grp.add(plane);
+        const hbox = new THREE.Mesh(hGeo, M.inv);
+        hbox.position.copy(plane.position); hbox.rotation.copy(plane.rotation);
+        hbox.userData.gi = -1; hbox.matrixAutoUpdate = false; hbox.updateMatrix();
+        grp.add(hbox);
+        targets.push({ plane, hbox });
+      });
+
+      scene.add(grp); worldGrp = grp;
+      return {
+        panels, targets, iFlame, cFlames, iAF, aFlames,
+        cZ1, aZ,
+        smesh: [],
+        cBound: { x0: -3.8, x1: 3.8, z0: aZ - 1, z1: cZ0 },
+        aBound: { x0: -(AR - 2.5), x1: AR - 2.5, z0: aZ - (AR - 2.5), z1: aZ + (AR - 2.5) },
+      };
+    }
+
+    // ── Controls ──────────────────────────────────────────────────────
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const KEYS = {};
+    let alive = false;
+    let pointerLocked = false;
+    let isTouch = false;
+
+    C3D.addEventListener('click', () => {
+      if (!alive) return;
+      if (!pointerLocked && !isTouch) C3D.requestPointerLock();
     });
 
-    // Show gun — resize canvas AFTER display:block so offsetWidth is valid
-    const dpr=Math.min(devicePixelRatio,1.5);
-    GUN.style.display='block';
-    GCV.width=GUN.offsetWidth*dpr; GCV.height=GUN.offsetHeight*dpr;
-
-    ARENA_LIGHT.visible=true;
-    RES.startTrial();
-    ACCBAR.classList.add('show');
-    buildAnswerUI(this.opts);
-    XRING.classList.add('aim');
-    PROMPT.textContent=`WHICH GLYPH WAS ${this.N} STEP${this.N>1?'S':''} AGO?  ·  SHOOT OR PRESS 1-4`;
-    hudUpdate();
-  },
-
-  pick(gi){
-    if(this.phase!=='arena') return;
-    this.phase='busy'; this.W.smesh=[];
-    ABAR.classList.remove('show'); SPANEL.classList.remove('show');
-    ACCBAR.classList.remove('show'); XRING.classList.remove('aim');
-    ARENA_LIGHT.visible=false;
-
-    const ok=(gi===this.correct);
-    RES.record(this.N,this.correct,gi,ok);
-
-    if(ok){
-      SFX.correct(); this.N++; if(this.N>this.bestN) this.bestN=this.N;
-      showResult(true,'CORRECT!',()=>{ GUN.style.display='none'; fdOut(()=>this.start(),460); });
-    } else {
-      SFX.wrong();
-      // Highlight correct pedestal gold before resetting
-      this.W.targets.forEach(t=>{ if(t.plane.userData.gi===this.correct) t.plane.material=GMAT[this.correct]; });
-      const cName=GLYPHS[this.correct].name;
-      this.N=1;
-      showResult(false,`WRONG  ·  WAS: ${cName}`,()=>{ GUN.style.display='none'; fdOut(()=>this.start(),460); });
-    }
-  }
-};
-
-// ── Tutorial NPC (Khenu the Keeper) ───────────────────────────────
-const SLIDES=[
-  {anim:'idle', text:'Greetings, seeker. I am <b>Khenu</b>, Keeper of the Memory Halls.<br><br>These ruins hold the <b>Glyph Trials</b> — an ancient n-back memory test. I will guide you through what you must do.'},
-  {anim:'point',text:'As you walk the <b>Corridor of Memory</b>, stone panels glow gold as you pass them. Each panel carries a sacred <b>Egyptian hieroglyph</b>. Simply walk past and remember what you see.'},
-  {anim:'think',text:'This is the n-back test. After seeing the sequence, you enter the <b>Trial Chamber</b>.<br><br>You must identify the glyph that appeared <b>N steps before the last one</b>. At level 1, recall the second-to-last. At level 2, the third-to-last, and so on.'},
-  {anim:'gesture',text:'Four glyphs appear on pedestals. <b>Aim and click</b> to shoot the correct one — or press keys <b>1, 2, 3, 4</b>.<br><br>Correct answer → N increases. Wrong answer → back to N=1.'},
-  {anim:'idle',text:'<b>Controls</b><br>&#x2022; WASD — walk<br>&#x2022; Shift + WASD — sprint<br>&#x2022; Space — jump<br>&#x2022; Mouse — look (click canvas to lock mouse)<br>&#x2022; Left-click — shoot a pedestal<br>&#x2022; 1&ndash;4 — choose by keyboard<br>&#x2022; ESC — pause'},
-  {anim:'bow', text:'Your performance is logged automatically. Open the <b>Pause Menu</b> to export a CSV file with trial number, N-level, correct glyph, chosen glyph, accuracy, and reaction time.<br><br>May your memory be long. Good luck.'},
-];
-let tutPage=0, tutFromTitle=false;
-
-function showTutorial(fromTitle){
-  tutFromTitle=fromTitle; tutPage=0;
-  renderSlide(); TUT.classList.add('show'); drawNPC('idle');
-}
-function hideTutorial(){ TUT.classList.remove('show'); }
-
-TUT_PREV.addEventListener('click',()=>{ if(tutPage>0){tutPage--;renderSlide();} });
-TUT_NEXT.addEventListener('click',()=>{
-  if(tutPage<SLIDES.length-1){ tutPage++;renderSlide(); }
-  else {
-    hideTutorial();
-    if(tutFromTitle) startGame();
-  }
-});
-
-function renderSlide(){
-  const s=SLIDES[tutPage];
-  // SAFETY: s.text is a compile-time constant containing only <b> and <br> tags
-  TUT_TXT.innerHTML=s.text;
-  TUT_PREV.disabled=(tutPage===0);
-  const last=(tutPage===SLIDES.length-1);
-  TUT_NEXT.textContent=last?(tutFromTitle?'BEGIN \u2192':'CLOSE'):'NEXT \u2192';
-  TUT_DOTS.innerHTML='';
-  for(let i=0;i<SLIDES.length;i++){
-    const d=document.createElement('div'); d.className='tut-dot'+(i===tutPage?' on':''); TUT_DOTS.appendChild(d);
-  }
-  drawNPC(s.anim);
-}
-
-// Draw Khenu — Egyptian priest figure (canvas 2D)
-function drawNPC(pose){
-  const cv=$('npc-cv'); if(!cv) return;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,160,260);
-  const skin='#c8924a',dark='#6b3a12',kilt='rgba(240,228,180,.92)',
-        collar='#c8922a',gold='#f5c040',eye='#2a1a06';
-  let headTilt=0,armRaise=0,bodyLean=0;
-  if(pose==='point'){armRaise=-30;bodyLean=4;}
-  if(pose==='think'){headTilt=8;}
-  if(pose==='gesture'){armRaise=-18;bodyLean=-3;}
-  if(pose==='bow'){headTilt=22;bodyLean=10;}
-  const cx=80+bodyLean;
-  // legs
-  ctx.fillStyle=skin;
-  ctx.beginPath();ctx.moveTo(cx-14,190);ctx.lineTo(cx-4,190);ctx.lineTo(cx-4,248);ctx.lineTo(cx-16,248);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx+4,190);ctx.lineTo(cx+14,190);ctx.lineTo(cx+16,248);ctx.lineTo(cx+4,248);ctx.closePath();ctx.fill();
-  ctx.strokeStyle=dark;ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(cx-18,247);ctx.lineTo(cx-12,250);ctx.lineTo(cx-4,247);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+4,247);ctx.lineTo(cx+13,250);ctx.lineTo(cx+18,247);ctx.stroke();
-  // kilt
-  ctx.fillStyle=kilt;ctx.beginPath();ctx.moveTo(cx-18,140);ctx.lineTo(cx+18,140);ctx.lineTo(cx+20,194);ctx.lineTo(cx-20,194);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.18)';ctx.lineWidth=1;
-  for(let k=-12;k<=12;k+=6){ctx.beginPath();ctx.moveTo(cx+k,140);ctx.lineTo(cx+k*1.05,194);ctx.stroke();}
-  // torso
-  ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(cx-18,90);ctx.lineTo(cx+18,90);ctx.lineTo(cx+16,142);ctx.lineTo(cx-16,142);ctx.closePath();ctx.fill();
-  // collar
-  ctx.strokeStyle=collar;ctx.lineWidth=7;ctx.beginPath();ctx.arc(cx,100,17,Math.PI*.1,Math.PI*.9);ctx.stroke();
-  ctx.strokeStyle=gold;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,100,17,Math.PI*.1,Math.PI*.9);ctx.stroke();
-  ctx.fillStyle=gold;
-  for(let b=0;b<7;b++){const ba=Math.PI*.1+b*(Math.PI*.8/6);ctx.beginPath();ctx.arc(cx+Math.cos(ba)*17,100+Math.sin(ba)*17,2.5,0,Math.PI*2);ctx.fill();}
-  // right arm
-  ctx.save();ctx.translate(cx+18,108);ctx.rotate(armRaise*Math.PI/180);
-  ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,0,8,28,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(4,46,6,22,.2,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(6,68,7,0,Math.PI*2);ctx.fill();ctx.restore();
-  // staff
-  ctx.save();ctx.translate(cx+28,108);ctx.rotate(-armRaise*.6*Math.PI/180);
-  ctx.strokeStyle=dark;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-80);ctx.lineTo(0,140);ctx.stroke();
-  ctx.strokeStyle=gold;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-80);ctx.quadraticCurveTo(-12,-100,-8,-118);ctx.stroke();
-  ctx.beginPath();ctx.arc(0,-60,4,0,Math.PI*2);ctx.strokeStyle=gold;ctx.lineWidth=2;ctx.stroke();ctx.restore();
-  // left arm
-  ctx.save();ctx.translate(cx-18,108);ctx.rotate(8*Math.PI/180);
-  ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,0,7,26,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(-3,44,5,20,-.15,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(-4,64,6,0,Math.PI*2);ctx.fill();ctx.restore();
-  // neck
-  ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(cx,84,9,12,0,0,Math.PI*2);ctx.fill();
-  // head
-  ctx.save();ctx.translate(cx,62);ctx.rotate(headTilt*Math.PI/180);
-  ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,0,22,28,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(180,120,50,.35)';ctx.beginPath();ctx.ellipse(-4,-10,10,8,-.3,0,Math.PI*2);ctx.fill();
-  // eyes
-  ctx.fillStyle=eye;ctx.beginPath();ctx.ellipse(-9,2,5,3.5,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(9,2,5,3.5,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#f5e8cc';ctx.beginPath();ctx.ellipse(-9,1.5,3.5,2.5,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(9,1.5,3.5,2.5,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=eye;ctx.beginPath();ctx.arc(-9,1.5,1.5,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(9,1.5,1.5,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle=dark;ctx.lineWidth=1.2;
-  ctx.beginPath();ctx.moveTo(-16,2);ctx.lineTo(-4,2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(4,2);ctx.lineTo(16,2);ctx.stroke();
-  // nose
-  ctx.strokeStyle='rgba(100,50,10,.44)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(0,4);ctx.quadraticCurveTo(5,12,3,14);ctx.stroke();
-  // mouth
-  ctx.strokeStyle=dark;ctx.lineWidth=1.8;
-  if(pose==='bow'||pose==='think'){ctx.beginPath();ctx.moveTo(-7,20);ctx.quadraticCurveTo(0,21,7,20);ctx.stroke();}
-  else{ctx.beginPath();ctx.moveTo(-8,19);ctx.quadraticCurveTo(0,24,8,19);ctx.stroke();}
-  // headband
-  ctx.strokeStyle=gold;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-20,-8);ctx.lineTo(20,-8);ctx.stroke();
-  ctx.fillStyle=gold;ctx.beginPath();ctx.ellipse(0,-18,6,4,0,0,Math.PI*2);ctx.fill();
-  // ear + earring
-  ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(-22,5,5,8,.2,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=gold;ctx.beginPath();ctx.arc(-24,8,3,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-  // glow
-  const grad=ctx.createRadialGradient(cx,252,2,cx,252,28);
-  grad.addColorStop(0,'rgba(245,160,30,.22)');grad.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(cx,252,28,10,0,0,Math.PI*2);ctx.fill();
-}
-
-// ── Main loop ─────────────────────────────────────────────────────
-let lastT=0, flTick=0;
-
-function loop(t){
-  requestAnimationFrame(loop);
-  const dt=Math.min((t-lastT)*.001,.05); lastT=t;
-
-  // Key light follows camera — free corridor warmth
-  // (using TORCH_LIGHTS[0] position doesn't help; corridor torches handle this)
-
-  const W=G.W;
-  if(G.phase==='corridor'&&W){
-    moveCam(dt,W.cBound);
-    const pz=cam.position.z;
-    W.panels.forEach(p=>{ if(!p.hit&&Math.abs(pz-p.z)<6.0) G.trigPanel(p); });
-    if(pz<=W.cZ1-.4) G.enterArena();
-  } else if(G.phase==='arena'&&W){
-    moveCam(dt,W.aBound);
-    clampArena(W.aZ);
-  }
-
-  // Flame flicker + torch light pulse (throttled to ~60ms)
-  flTick+=dt;
-  if(flTick>.06&&W){
-    flTick=0;
-    const sc=.82+Math.sin(t*.011)*.2+(Math.random()-.5)*.1;
-    TORCH_LIGHTS.forEach((l,k)=>{
-      if(l.visible) l.intensity=2.4+Math.sin(t*.009+k*1.8)*.8+(Math.random()-.5)*.28;
+    LOCKHINT.addEventListener('click', () => {
+      if (!alive) return;
+      if (!isTouch) C3D.requestPointerLock();
     });
-    if(W.iFlame){
-      W.cFlames.forEach(f=>{
-        DM.position.set(f.x,f.y+Math.sin(t*.013+f.x)*.04,f.z);
-        DM.scale.setScalar(sc); DM.updateMatrix(); W.iFlame.setMatrixAt(f.i,DM.matrix);
-      });
-      W.iFlame.instanceMatrix.needsUpdate=true;
+
+    C3D.addEventListener('mousedown', e => {
+      if (!alive || e.button !== 0 || !pointerLocked) return;
+      if (G.phase === 'arena') doShoot();
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      pointerLocked = (document.pointerLockElement === C3D);
+      if (pointerLocked) {
+        LOCKHINT.classList.remove('show');
+        C3D.style.cursor = 'none';
+      } else {
+        LOCKHINT.classList.add('show');
+        C3D.style.cursor = 'crosshair';
+      }
+    });
+
+    document.addEventListener('pointerlockerror', () => {
+      pointerLocked = false;
+      C3D.style.cursor = 'crosshair';
+      const p = LOCKHINT.querySelector('p');
+      if (p && !isTouch) p.textContent = 'DRAG TO LOOK  ·  CLICK CANVAS TO TRY AGAIN';
+      LOCKHINT.classList.add('show');
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!pointerLocked || !alive) return;
+      euler.y -= e.movementX * 0.0022;
+      euler.x = Math.max(-1.38, Math.min(1.38, euler.x - e.movementY * 0.0022));
+      cam.quaternion.setFromEuler(euler);
+    });
+
+    // Touch Controls
+    let lookId = -1, tdist = 0, tlx = 0, tly = 0;
+    let joyVx = 0, joyVy = 0;
+
+    function setTouchMode() {
+      if (!isTouch) {
+        isTouch = true;
+        document.body.classList.add('is-touch');
+        const p = LOCKHINT.querySelector('p');
+        if (p) p.textContent = 'TAP TO BEGIN';
+      }
     }
-    if(W.iAF){
-      W.aFlames.forEach(f=>{
-        DM.position.set(f.x,f.y+Math.sin(t*.014+f.z)*.04,f.z);
-        DM.scale.setScalar(.8+Math.sin(t*.016+f.x)*.2); DM.updateMatrix(); W.iAF.setMatrixAt(f.i,DM.matrix);
-      });
-      W.iAF.instanceMatrix.needsUpdate=true;
+
+    C3D.addEventListener('touchstart', e => {
+      e.preventDefault(); setTouchMode();
+      for (const t of e.changedTouches) {
+        if (lookId === -1 && t.clientX >= innerWidth / 2) {
+          lookId = t.identifier; tdist = 0; tlx = t.clientX; tly = t.clientY;
+        } else if (lookId === -1 && G.phase === 'arena') {
+          lookId = t.identifier; tdist = 0; tlx = t.clientX; tly = t.clientY;
+        }
+      }
+    }, { passive: false });
+
+    C3D.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (t.identifier === lookId) {
+          const dx = t.clientX - tlx, dy = t.clientY - tly;
+          tdist += Math.abs(dx) + Math.abs(dy);
+          euler.y -= dx * 0.007;
+          euler.x = Math.max(-1.38, Math.min(1.38, euler.x - dy * 0.007));
+          cam.quaternion.setFromEuler(euler);
+          tlx = t.clientX; tly = t.clientY;
+        }
+      }
+    }, { passive: false });
+
+    C3D.addEventListener('touchend', e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === lookId) {
+          lookId = -1;
+          if (tdist < 15 && alive && G.phase === 'arena') doShoot();
+          else if (tdist < 15 && alive && !pointerLocked && !isTouch) C3D.requestPointerLock();
+        }
+      }
+    });
+    C3D.addEventListener('touchcancel', e => { for (const t of e.changedTouches) if (t.identifier === lookId) lookId = -1; });
+
+    const TJOY = $('t-joystick'), TSTK = $('t-stick'), TJUMP = $('t-jump'), TPAUSE = $('t-pause');
+    let joyId = -1, joyCX = 0, joyCY = 0, joyR = 60;
+
+    TJOY.addEventListener('touchstart', e => {
+      e.preventDefault(); setTouchMode();
+      if (joyId !== -1) return;
+      const t = e.changedTouches[0]; joyId = t.identifier;
+      const rect = TJOY.getBoundingClientRect();
+      joyCX = rect.left + rect.width / 2; joyCY = rect.top + rect.height / 2; joyR = rect.width / 2;
+      updateJoy(t.clientX, t.clientY);
+    }, { passive: false });
+
+    TJOY.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) if (t.identifier === joyId) updateJoy(t.clientX, t.clientY);
+    }, { passive: false });
+
+    const endJoy = e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joyId) { joyId = -1; joyVx = 0; joyVy = 0; TSTK.style.transform = `translate(0px, 0px)`; }
+      }
+    };
+    TJOY.addEventListener('touchend', endJoy); TJOY.addEventListener('touchcancel', endJoy);
+
+    function updateJoy(tx, ty) {
+      let dx = tx - joyCX, dy = ty - joyCY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > joyR) { dx = (dx / dist) * joyR; dy = (dy / dist) * joyR; }
+      TSTK.style.transform = `translate(${dx}px, ${dy}px)`;
+      joyVx = dx / joyR; joyVy = dy / joyR;
     }
-  }
 
-  drawGun(t);
-  renderer.render(scene,cam);
-}
+    TJUMP.addEventListener('touchstart', e => { e.preventDefault(); if (onGround && alive) { velY = JUMP_VEL; onGround = false; } }, { passive: false });
+    TPAUSE.addEventListener('click', () => { if (G.phase === 'paused') resumeGame(); else pauseGame(); });
 
-// ── Boot ──────────────────────────────────────────────────────────
-function startGame(){
-  if(!PTEX){ console.warn('Textures not ready yet'); return; }
-  TITLE.classList.add('gone'); alive=true;
-  LOCKHINT.classList.add('show'); RES.begin(); G.start();
-}
+    // Keyboard
+    document.addEventListener('keydown', e => {
+      KEYS[e.code] = true;
+      if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        e.preventDefault();
+      }
+      if (e.code === 'Escape' && alive) {
+        if (pointerLocked) document.exitPointerLock();
+        if (G.phase === 'paused') resumeGame(); else pauseGame();
+        return;
+      }
+      if (G.phase === 'arena') {
+        const idx = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+        if (idx >= 0 && G.opts[idx] != null) { G.pick(G.opts[idx]); trigRecoil(); }
+      }
+    });
+    document.addEventListener('keyup', e => { KEYS[e.code] = false; });
 
-// Wire title buttons
-$('enter-btn').addEventListener('click', startGame);
-$('how-btn').addEventListener('click', ()=> showTutorial(true));
+    // ── Player physics ────────────────────────────────────────────────
+    const EYE_HEIGHT = 1.78;
+    const CEILING = 9.6;
+    const JUMP_VEL = 7.0;
+    const GRAVITY = 22.0;
+    let velY = 0;
+    let onGround = true;
+    let spaceWasDown = false;
 
-// Bake textures once fonts are loaded
-document.fonts.ready.then(()=>{
-  // Force font paint with a test character
-  const tc=document.createElement('canvas').getContext('2d');
-  tc.font='40px "Noto Sans Egyptian Hieroglyphs",serif'; tc.fillText(GLYPHS[0].ch,0,40);
+    function moveCam(dt, b) {
+      const inArena = (G.phase === 'arena');
+      const moving = KEYS['KeyW'] || KEYS['ArrowUp'] || KEYS['KeyS'] || KEYS['ArrowDown']
+        || KEYS['KeyA'] || KEYS['ArrowLeft'] || KEYS['KeyD'] || KEYS['ArrowRight']
+        || (Math.abs(joyVx) > 0.1 || Math.abs(joyVy) > 0.1);
+      const canSprint = moving && !inArena && (KEYS['ShiftLeft'] || KEYS['ShiftRight'] || joyVy < -0.8);
+      const spd = canSprint ? 9.0 : 4.2;
 
-  PTEX=GLYPHS.map((_,i)=>{
-    const S=200,cv=document.createElement('canvas');cv.width=cv.height=S;
-    drawTile(cv.getContext('2d'),S,i,false);
-    const tex=new THREE.CanvasTexture(cv);tex.generateMipmaps=true;tex.minFilter=THREE.LinearMipmapLinearFilter;return tex;
-  });
-  GTEX=GLYPHS.map((_,i)=>{
-    const S=200,cv=document.createElement('canvas');cv.width=cv.height=S;
-    drawTile(cv.getContext('2d'),S,i,true);
-    const tex=new THREE.CanvasTexture(cv);tex.generateMipmaps=true;tex.minFilter=THREE.LinearMipmapLinearFilter;return tex;
-  });
-  PMAT=PTEX.map(t=>new THREE.MeshBasicMaterial({map:t}));
-  GMAT=GTEX.map(t=>new THREE.MeshBasicMaterial({map:t}));
+      const sy = Math.sin(euler.y), cy = Math.cos(euler.y);
+      if (KEYS['KeyW'] || KEYS['ArrowUp']) { cam.position.x -= sy * spd * dt; cam.position.z -= cy * spd * dt; }
+      if (KEYS['KeyS'] || KEYS['ArrowDown']) { cam.position.x += sy * spd * dt; cam.position.z += cy * spd * dt; }
+      if (KEYS['KeyA'] || KEYS['ArrowLeft']) { cam.position.x -= cy * spd * .7 * dt; cam.position.z += sy * spd * .7 * dt; }
+      if (KEYS['KeyD'] || KEYS['ArrowRight']) { cam.position.x += cy * spd * .7 * dt; cam.position.z -= sy * spd * .7 * dt; }
+      if (Math.abs(joyVy) > 0.05) { cam.position.x += sy * spd * joyVy * dt; cam.position.z += cy * spd * joyVy * dt; }
+      if (Math.abs(joyVx) > 0.05) { cam.position.x += cy * spd * .7 * joyVx * dt; cam.position.z -= sy * spd * .7 * joyVx * dt; }
 
-  const eb=$('enter-btn'),hb=$('how-btn');
-  eb.disabled=false; eb.innerHTML='&#9654;&nbsp; ENTER THE RUINS';
-  hb.disabled=false;
-});
+      const spaceNow = !!(KEYS['Space']);
+      if (spaceNow && !spaceWasDown && onGround) {
+        velY = JUMP_VEL;
+        onGround = false;
+      }
+      spaceWasDown = spaceNow;
 
-requestAnimationFrame(loop);
-</script>
+      if (!onGround) {
+        velY -= GRAVITY * dt;
+        cam.position.y += velY * dt;
+        if (cam.position.y <= EYE_HEIGHT) {
+          cam.position.y = EYE_HEIGHT;
+          velY = 0;
+          onGround = true;
+        }
+        if (cam.position.y >= CEILING) {
+          cam.position.y = CEILING;
+          velY = Math.min(velY, 0);
+        }
+      } else {
+        cam.position.y = EYE_HEIGHT;
+      }
+
+      cam.position.x = Math.max(b.x0, Math.min(b.x1, cam.position.x));
+      cam.position.z = Math.max(b.z0, Math.min(b.z1, cam.position.z));
+    }
+    function clampArena(az) {
+      const dx = cam.position.x, dz = cam.position.z - az;
+      const d = Math.sqrt(dx * dx + dz * dz), maxR = AR - 2.4;
+      if (d > maxR) {
+        cam.position.x = dx / d * maxR;
+        cam.position.z = az + dz / d * maxR;
+      }
+    }
+
+    // ── Raycast ───────────────────────────────────────────────────────
+    const RC = new THREE.Raycaster(), RD = new THREE.Vector3();
+    function doShoot() {
+      if (G.phase !== 'arena') return;
+      trigRecoil(); SFX.shoot();
+      cam.getWorldDirection(RD); RC.set(cam.position, RD);
+      const hits = RC.intersectObjects(G.W.smesh, false);
+      if (hits.length && hits[0].object.userData.gi >= 0) G.pick(hits[0].object.userData.gi);
+    }
+
+    // ── Gun viewmodel (2D canvas overlay) ────────────────────────────
+    let recoil = 0, mflash = 0, gbob = 0;
+    function trigRecoil() { recoil = 1; mflash = 1; }
+
+    function drawGun(t) {
+      const W = GCV.width, H = GCV.height;
+      const dpr = Math.min(devicePixelRatio, 1.5);
+      GCX.clearRect(0, 0, W, H);
+
+      const show = (G.phase === 'arena') || (G.phase === 'busy' && (recoil > 0.01 || mflash > 0.01));
+      if (!show) return;
+
+      GCX.save();
+      GCX.scale(dpr, dpr);
+      const bw = W / dpr, bh = H / dpr;
+
+      gbob = Math.sin(t * .0032) * 1.8 + Math.cos(t * .0071) * .7;
+      if (!onGround) gbob = (cam.position.y - EYE_HEIGHT) * 2.5;
+
+      const kickY = recoil * 18;
+      recoil = Math.max(0, recoil - .08);
+
+      const cx = bw * .5;
+      const cy = bh * .92 + gbob + kickY;
+
+      const barrelW = bw * .06;
+      const barrelH = bh * .55;
+
+      const bGrad = GCX.createLinearGradient(cx - barrelW, 0, cx + barrelW, 0);
+      bGrad.addColorStop(0, '#3a2008');
+      bGrad.addColorStop(.35, '#c0883c');
+      bGrad.addColorStop(.65, '#845a12');
+      bGrad.addColorStop(1, '#3a2008');
+      GCX.fillStyle = bGrad;
+      GCX.fillRect(cx - barrelW * .5, cy - barrelH, barrelW, barrelH);
+
+      GCX.fillStyle = '#1a0c02';
+      GCX.fillRect(cx - barrelW * .5 - 2, cy - barrelH, barrelW + 4, bh * .03);
+
+      GCX.fillStyle = '#080402';
+      GCX.beginPath();
+      GCX.arc(cx, cy - barrelH + bh * .015, barrelW * .28, 0, Math.PI * 2);
+      GCX.fill();
+
+      GCX.fillStyle = 'rgba(255,200,120,.22)';
+      GCX.fillRect(cx - 1.5, cy - barrelH + bh * .03, 3, barrelH * .7);
+
+      const bodyW = bw * .22;
+      const bodyH = bh * .28;
+      const bodyY = cy - barrelH * .3;
+
+      const bodyGrad = GCX.createLinearGradient(cx - bodyW * .5, bodyY, cx + bodyW * .5, bodyY);
+      bodyGrad.addColorStop(0, '#2c1806');
+      bodyGrad.addColorStop(.3, '#6e4e14');
+      bodyGrad.addColorStop(.7, '#4e3a0e');
+      bodyGrad.addColorStop(1, '#2c1806');
+      GCX.fillStyle = bodyGrad;
+
+      GCX.beginPath();
+      GCX.moveTo(cx - bodyW * .5, bodyY);
+      GCX.lineTo(cx + bodyW * .5, bodyY);
+      GCX.lineTo(cx + bodyW * .6, bodyY + bodyH);
+      GCX.lineTo(cx - bodyW * .6, bodyY + bodyH);
+      GCX.closePath();
+      GCX.fill();
+
+      GCX.save();
+      GCX.shadowBlur = 12;
+      GCX.shadowColor = 'rgba(245,162,36,.9)';
+      GCX.strokeStyle = 'rgba(245,178,56,.75)';
+      GCX.lineWidth = 1.6;
+      const rx2 = cx, ry2 = bodyY + bodyH * .5;
+      const rs = bodyW * .18;
+      GCX.beginPath(); GCX.arc(rx2, ry2, rs, 0, Math.PI * 2); GCX.stroke();
+      GCX.beginPath(); GCX.moveTo(rx2, ry2 - rs); GCX.lineTo(rx2, ry2 + rs); GCX.stroke();
+      GCX.beginPath(); GCX.moveTo(rx2 - rs, ry2); GCX.lineTo(rx2 + rs, ry2); GCX.stroke();
+      GCX.restore();
+
+      const gripW = bw * .14;
+      const gripH = bh * .22;
+      const gripY = bodyY + bodyH;
+
+      const gripGrad = GCX.createLinearGradient(cx - gripW * .5, gripY, cx + gripW * .5, gripY);
+      gripGrad.addColorStop(0, '#201004');
+      gripGrad.addColorStop(.5, '#3e2808');
+      gripGrad.addColorStop(1, '#201004');
+      GCX.fillStyle = gripGrad;
+      GCX.beginPath();
+      GCX.moveTo(cx - gripW * .5, gripY);
+      GCX.lineTo(cx + gripW * .5, gripY);
+      GCX.lineTo(cx + gripW * .38, gripY + gripH);
+      GCX.lineTo(cx - gripW * .38, gripY + gripH);
+      GCX.closePath();
+      GCX.fill();
+
+      GCX.strokeStyle = 'rgba(0,0,0,.3)';
+      GCX.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const ly = gripY + gripH * .15 + i * gripH * .15;
+        GCX.beginPath();
+        GCX.moveTo(cx - gripW * .35, ly);
+        GCX.lineTo(cx + gripW * .35, ly);
+        GCX.stroke();
+      }
+
+      GCX.strokeStyle = '#3a2208';
+      GCX.lineWidth = 3;
+      GCX.beginPath();
+      GCX.arc(cx, bodyY + bodyH + 4, bodyW * .22, 0, Math.PI);
+      GCX.stroke();
+
+      if (mflash > 0) {
+        const fx = cx, fy = cy - barrelH;
+        GCX.save();
+        GCX.shadowBlur = 40;
+        GCX.shadowColor = 'rgba(245,180,56,1)';
+        GCX.fillStyle = `rgba(255,215,80,${mflash * .95})`;
+        GCX.beginPath();
+        GCX.arc(fx, fy, bw * .06 * mflash * 2.2, 0, Math.PI * 2);
+        GCX.fill();
+        GCX.strokeStyle = `rgba(255,240,120,${mflash * .85})`;
+        GCX.lineWidth = 2;
+        const spokeAngles = [-Math.PI / 2, -Math.PI / 3, -Math.PI * 2 / 3, -Math.PI / 4, -Math.PI * 3 / 4];
+        spokeAngles.forEach(a => {
+          const len = bw * .08 * mflash;
+          GCX.beginPath();
+          GCX.moveTo(fx, fy);
+          GCX.lineTo(fx + Math.cos(a) * len, fy + Math.sin(a) * len);
+          GCX.stroke();
+        });
+        GCX.restore();
+        mflash = Math.max(0, mflash - .12);
+      }
+
+      GCX.restore();
+    }
+
+    // ── Accessibility state ───────────────────────────────────────────
+    const ACC = { labels: false, large: false, keys: false, side: false, hc: false, buttons: true };
+
+    function accToggle(key) {
+      ACC[key] = !ACC[key];
+      const el = $('t-' + key); if (el) { el.classList.toggle('on', ACC[key]); el.setAttribute('aria-checked', String(ACC[key])); }
+      const acb = $('acb-' + key); if (acb) acb.classList.toggle('on', ACC[key]);
+      document.body.classList.toggle('acc-' + key, ACC[key]);
+      if (G.phase === 'arena') buildAnswerUI(G.opts);
+    }
+
+    ['labels', 'large', 'keys', 'side', 'hc', 'buttons'].forEach(k => {
+      const el = $('t-' + k);
+      if (el) el.addEventListener('click', () => accToggle(k));
+      const acb = $('acb-' + k);
+      if (acb) acb.addEventListener('click', () => accToggle(k));
+    });
+
+    // ── Research data ─────────────────────────────────────────────────
+    const RES = {
+      pid: '', trials: [], sessionStart: 0, trialStart: 0,
+      begin() { this.trials = []; this.sessionStart = Date.now(); },
+      startTrial() { this.trialStart = Date.now(); },
+      record(n, correct, chosen, ok) {
+        this.trials.push({
+          pid: this.pid || 'anon', trial: this.trials.length + 1, n,
+          correct: GLYPHS[correct].id, chosen: GLYPHS[chosen].id,
+          hit: ok ? 1 : 0, rt_ms: Date.now() - this.trialStart,
+          elapsed_s: ((Date.now() - this.sessionStart) / 1000).toFixed(1)
+        });
+        this.updateBar();
+      },
+      updateBar() {
+        const n = this.trials.length; if (!n) { STATSBAR.style.display = 'none'; return; }
+        const hits = this.trials.filter(t => t.hit).length;
+        const last = this.trials[n - 1];
+        STATSBAR.textContent = `T${n}  N=${last.n}  ${Math.round(hits / n * 100)}% HIT  RT ${last.rt_ms}ms`;
+        STATSBAR.style.display = 'block';
+      },
+      exportCSV() {
+        if (!this.trials.length) { alert('No trial data yet.'); return; }
+        const hdr = 'pid,trial,n,correct,chosen,hit,rt_ms,elapsed_s';
+        const rows = this.trials.map(t => Object.values(t).join(','));
+        const csv = [hdr, ...rows].join('\n');
+        const a = document.createElement('a');
+        a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        a.download = `glyphmind_${this.pid || 'anon'}_${Date.now()}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
+    };
+
+    const pidInput = $('pid');
+    pidInput.addEventListener('input', function () {
+      this.value = this.value.replace(/[^\w\-]/g, '').slice(0, 32);
+      RES.pid = this.value;
+    });
+
+    // ── Pause/resume ──────────────────────────────────────────────────
+    let pmN = 1;
+    function pauseGame() {
+      if (G.phase === 'busy' || G.phase === 'title') return;
+      G._prevPhase = G.phase; G.phase = 'paused';
+      PMENU.classList.add('show'); PM_NVAL.textContent = pmN;
+      if (pointerLocked) document.exitPointerLock();
+    }
+    function resumeGame() {
+      G.phase = G._prevPhase || 'corridor';
+      PMENU.classList.remove('show');
+      setTimeout(() => { if (!isTouch) C3D.requestPointerLock(); }, 80);
+    }
+
+    $('pm-resume').addEventListener('click', resumeGame);
+    $('pm-restart').addEventListener('click', () => {
+      PMENU.classList.remove('show'); G.N = 1; pmN = 1; PM_NVAL.textContent = 1;
+      RES.begin(); fdOut(() => G.start(), 360);
+    });
+    $('pm-nminus').addEventListener('click', () => { pmN = Math.max(1, pmN - 1); PM_NVAL.textContent = pmN; });
+    $('pm-nplus').addEventListener('click', () => { pmN = Math.min(15, pmN + 1); PM_NVAL.textContent = pmN; });
+    $('pm-setn').addEventListener('click', () => { PMENU.classList.remove('show'); G.N = pmN; fdOut(() => G.start(), 360); });
+    $('pm-tutorial').addEventListener('click', () => { PMENU.classList.remove('show'); showTutorial(false); });
+    $('pm-export').addEventListener('click', () => RES.exportCSV());
+
+    // ── HUD ───────────────────────────────────────────────────────────
+    function hudUpdate() {
+      NLEVEL.textContent = `N-BACK: ${G.N}`;
+      BESTLV.textContent = `BEST: ${G.bestN}`;
+      if (!G.seq.length) { SEQBOX.innerHTML = ''; return; }
+      const dots = G.seq.map((gi, i) => {
+        if (i < G.mem.length) {
+          return ACC.labels
+            ? `<span style="color:rgba(245,180,60,.96)">${GLYPHS[gi].id}</span>`
+            : `<span style="color:rgba(245,180,60,.9);font-size:1.1em">&#9679;</span>`;
+        }
+        return `<span style="color:rgba(55,40,11,.36)">&#9675;</span>`;
+      }).join(' ');
+      let html = `<div style="font-size:.72em;color:rgba(128,92,24,.52);letter-spacing:.12em;margin-bottom:2px">${G.mem.length}/${G.seq.length} GLYPHS</div>${dots}`;
+      if (G.phase === 'arena') {
+        html += ACC.labels
+          ? `<div style="margin-top:4px;font-size:.74em;color:rgba(155,110,38,.6)">LAST: <b style="color:rgba(245,180,60,.9)">${GLYPHS[G.seq[G.seq.length - 1]].id}</b></div>`
+          : `<div style="margin-top:4px;font-size:.74em;color:rgba(155,110,38,.6)">N=${G.N} steps back</div>`;
+      }
+      SEQBOX.innerHTML = html;
+    }
+
+    // ── Answer UI ─────────────────────────────────────────────────────
+    function buildAnswerUI(opts) {
+      ABAR.innerHTML = '';
+      if (!ACC.buttons) { ABAR.classList.remove('show'); }
+      else {
+        const sz = ACC.large ? 70 : 56;
+        opts.forEach((gi, i) => {
+          const btn = document.createElement('button'); btn.className = 'ab';
+          btn.setAttribute('aria-label', `Select ${GLYPHS[gi].name} (option ${i + 1})`);
+          const cv = document.createElement('canvas'); cv.width = cv.height = sz;
+          drawTile(cv.getContext('2d'), sz, gi, false);
+          cv.style.width = cv.style.height = sz + 'px'; btn.appendChild(cv);
+          const lbl = document.createElement('span'); lbl.className = 'al';
+          lbl.textContent = GLYPHS[gi].id; btn.appendChild(lbl);
+          const kh = document.createElement('span'); kh.className = 'ak';
+          kh.textContent = `[${i + 1}]`; btn.appendChild(kh);
+          btn.addEventListener('click', () => { G.pick(gi); trigRecoil(); SFX.shoot(); });
+          ABAR.appendChild(btn);
+        });
+        ABAR.classList.add('show');
+      }
+
+      SPANEL.innerHTML = '';
+      if (!ACC.side) { SPANEL.classList.remove('show'); return; }
+      opts.forEach((gi, i) => {
+        const btn = document.createElement('button'); btn.className = 'sp';
+        btn.setAttribute('aria-label', `Option ${i + 1}: ${GLYPHS[gi].name}`);
+        const cv = document.createElement('canvas'); cv.width = cv.height = 52;
+        drawTile(cv.getContext('2d'), 52, gi, false);
+        cv.style.width = cv.style.height = '52px'; btn.appendChild(cv);
+        const sk = document.createElement('span'); sk.className = 'sk';
+        sk.textContent = `[${i + 1}] ${GLYPHS[gi].id}`; btn.appendChild(sk);
+        btn.addEventListener('click', () => { G.pick(gi); trigRecoil(); SFX.shoot(); });
+        SPANEL.appendChild(btn);
+      });
+      SPANEL.classList.add('show');
+    }
+
+    // ── Sequence generator ────────────────────────────────────────────
+    function genSeq(N) {
+      const len = N + 3, s = [];
+      for (let i = 0; i < len; i++) {
+        let g, tries = 0;
+        do { g = ~~(Math.random() * N_GLYPHS); tries++; }
+        while (s.length && g === s[s.length - 1] && tries < 30);
+        s.push(g);
+      }
+      return s;
+    }
+    function shuf(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = ~~(Math.random() * (i + 1));[b[i], b[j]] = [b[j], b[i]]; } return b; }
+
+    // ── Fade utilities ────────────────────────────────────────────────
+    function fdOut(cb, ms = 540) { FADE.style.transition = `opacity ${ms}ms ease`; FADE.style.opacity = '1'; setTimeout(cb, ms); }
+    function fdIn(ms = 600) { setTimeout(() => { FADE.style.transition = `opacity ${ms}ms ease`; FADE.style.opacity = '0'; }, 30); }
+    function showResult(ok, text, cb) { RFL.className = `show ${ok ? 'ok' : 'no'}`; RFL_TXT.textContent = text; setTimeout(() => { RFL.className = ''; if (cb) cb(); }, ok ? 1200 : 1900); }
+
+    // ── Game state machine ────────────────────────────────────────────
+    const G = {
+      phase: 'title', N: 1, bestN: 1,
+      seq: [], mem: [], opts: [], correct: -1,
+      W: null, _prevPhase: 'corridor',
+
+      start() {
+        this.phase = 'busy'; this.mem = [];
+        if (this.W && this.W.panels) this.W.panels.forEach(p => { if (p.glowTimer) clearTimeout(p.glowTimer); });
+        this.seq = genSeq(this.N);
+        this.correct = this.seq[2];
+        this.W = buildLevel(this.seq);
+        cam.position.set(0, EYE_HEIGHT, 3.5);
+        euler.set(0, 0, 0);
+        cam.quaternion.setFromEuler(euler);
+        velY = 0;
+        onGround = true;
+        spaceWasDown = false;
+        GUN.style.display = 'none';
+        if (isTouch) { TJOY.style.display = ''; TJUMP.style.display = ''; }
+        ABAR.classList.remove('show'); SPANEL.classList.remove('show');
+        ACCBAR.classList.remove('show'); XRING.classList.remove('aim');
+        ARENA_LIGHT.visible = false;
+        hudUpdate(); fdIn(580);
+        setTimeout(() => {
+          this.phase = 'corridor';
+          PROMPT.textContent = 'WALK FORWARD  ·  MEMORIZE THE GLYPHS';
+        }, 660);
+      },
+
+      trigPanel(p, silent = false) {
+        if (p.hit) return;
+        p.hit = true;
+        if (!silent) SFX.panel();
+        this.mem.push(p.gi);
+        if (GMAT) p.mesh.material = GMAT[p.gi];
+        if (p.glowTimer) clearTimeout(p.glowTimer);
+        p.glowTimer = setTimeout(() => { if (p.mesh && PMAT) p.mesh.material = PMAT[p.gi]; }, 900);
+        const seen = this.mem.length;
+        const total = this.seq.length;
+        if (!silent && G.phase === 'corridor') {
+          if (seen === total) {
+            PROMPT.textContent = `ALL ${total} GLYPHS SEEN  ·  ENTER THE CHAMBER`;
+          } else {
+            PROMPT.textContent = `GLYPH ${seen} OF ${total}  ·  KEEP WALKING`;
+          }
+        }
+        hudUpdate();
+      },
+
+      enterArena() {
+        if (this.phase !== 'corridor') return;
+        this.phase = 'arena'; SFX.enter();
+        this.W.panels.forEach(p => { if (!p.hit) this.trigPanel(p, true); });
+
+        const inSeq = new Set(this.seq);
+        let pool = []; for (let g = 0; g < N_GLYPHS; g++) if (!inSeq.has(g)) pool.push(g);
+        if (pool.length < 3) { pool = []; for (let g = 0; g < N_GLYPHS; g++) if (g !== this.correct) pool.push(g); }
+        this.opts = shuf([this.correct, ...shuf(pool).slice(0, 3)]);
+
+        this.W.smesh = [];
+        this.W.targets.forEach((tgt, i) => {
+          const gi = this.opts[i];
+          tgt.plane.material = GMAT[gi];
+          tgt.plane.userData.gi = gi; tgt.hbox.userData.gi = gi;
+          this.W.smesh.push(tgt.plane, tgt.hbox);
+        });
+
+        const dpr = Math.min(devicePixelRatio, 1.5);
+        GUN.style.display = 'block';
+        if (isTouch) { TJOY.style.display = 'none'; TJUMP.style.display = 'none'; }
+        GCV.width = GUN.offsetWidth * dpr; GCV.height = GUN.offsetHeight * dpr;
+
+        ARENA_LIGHT.visible = true;
+        RES.startTrial();
+        ACCBAR.classList.add('show');
+        buildAnswerUI(this.opts);
+        XRING.classList.add('aim');
+        PROMPT.textContent = `WHICH GLYPH WAS ${this.N} STEP${this.N > 1 ? 'S' : ''} AGO?  ·  SHOOT OR PRESS 1-4`;
+        hudUpdate();
+      },
+
+      pick(gi) {
+        if (this.phase !== 'arena') return;
+        this.phase = 'busy'; this.W.smesh = [];
+        ABAR.classList.remove('show'); SPANEL.classList.remove('show');
+        ACCBAR.classList.remove('show'); XRING.classList.remove('aim');
+        ARENA_LIGHT.visible = false;
+
+        const ok = (gi === this.correct);
+        RES.record(this.N, this.correct, gi, ok);
+
+        if (ok) {
+          SFX.correct(); this.N++; if (this.N > this.bestN) this.bestN = this.N;
+          showResult(true, 'CORRECT!', () => { GUN.style.display = 'none'; fdOut(() => this.start(), 460); });
+        } else {
+          SFX.wrong();
+          this.W.targets.forEach(t => { if (t.plane.userData.gi === this.correct) t.plane.material = GMAT[this.correct]; });
+          const cName = GLYPHS[this.correct].name;
+          this.N = 1;
+          showResult(false, `WRONG  ·  WAS: ${cName}`, () => { GUN.style.display = 'none'; fdOut(() => this.start(), 460); });
+        }
+      }
+    };
+
+    // ── Tutorial NPC (Khenu the Keeper) ───────────────────────────────
+    const SLIDES = [
+      { anim: 'idle', text: 'Greetings, seeker. I am <b>Khenu</b>, Keeper of the Memory Halls.<br><br>These ruins hold the <b>Glyph Trials</b> — an ancient n-back memory test. I will guide you through what you must do.' },
+      { anim: 'point', text: 'As you walk the <b>Corridor of Memory</b>, stone panels glow gold as you pass them. Each panel carries a sacred <b>Egyptian hieroglyph</b>. Simply walk past and remember what you see.' },
+      { anim: 'think', text: 'This is the n-back test. After seeing the sequence, you enter the <b>Trial Chamber</b>.<br><br>You must identify the glyph that appeared <b>N steps before the last one</b>. At level 1, recall the second-to-last. At level 2, the third-to-last, and so on.' },
+      { anim: 'gesture', text: 'Four glyphs appear on pedestals. <b>Aim and click</b> to shoot the correct one — or press keys <b>1, 2, 3, 4</b>.<br><br>Correct answer → N increases. Wrong answer → back to N=1.' },
+      { anim: 'idle', text: '<b>Controls</b><br>&#x2022; WASD — walk<br>&#x2022; Shift + WASD — sprint<br>&#x2022; Space — jump<br>&#x2022; Mouse — look (click canvas to lock mouse)<br>&#x2022; Left-click — shoot a pedestal<br>&#x2022; 1&ndash;4 — choose by keyboard<br>&#x2022; ESC — pause' },
+      { anim: 'bow', text: 'Your performance is logged automatically. Open the <b>Pause Menu</b> to export a CSV file with trial number, N-level, correct glyph, chosen glyph, accuracy, and reaction time.<br><br>May your memory be long. Good luck.' },
+    ];
+    let tutPage = 0, tutFromTitle = false;
+
+    function showTutorial(fromTitle) {
+      tutFromTitle = fromTitle; tutPage = 0;
+      renderSlide(); TUT.classList.add('show'); drawNPC('idle');
+    }
+    function hideTutorial() { TUT.classList.remove('show'); }
+
+    TUT_PREV.addEventListener('click', () => { if (tutPage > 0) { tutPage--; renderSlide(); } });
+    TUT_NEXT.addEventListener('click', () => {
+      if (tutPage < SLIDES.length - 1) { tutPage++; renderSlide(); }
+      else {
+        hideTutorial();
+        if (tutFromTitle) startGame();
+      }
+    });
+
+    function renderSlide() {
+      const s = SLIDES[tutPage];
+      let txt = s.text;
+      if (isTouch && tutPage === 4) { txt = '<b>Touch Controls</b><br>&#x2022; Joystick (left) — walk & sprint<br>&#x2022; Drag (right) — look<br>&#x2022; Tap (right) — shoot pedestal<br>&#x2022; Jump & Pause — on screen'; }
+      TUT_TXT.innerHTML = txt;
+      TUT_PREV.disabled = (tutPage === 0);
+      const last = (tutPage === SLIDES.length - 1);
+      TUT_NEXT.textContent = last ? (tutFromTitle ? 'BEGIN \u2192' : 'CLOSE') : 'NEXT \u2192';
+      TUT_DOTS.innerHTML = '';
+      for (let i = 0; i < SLIDES.length; i++) {
+        const d = document.createElement('div'); d.className = 'tut-dot' + (i === tutPage ? ' on' : ''); TUT_DOTS.appendChild(d);
+      }
+      drawNPC(s.anim);
+    }
+
+    function drawNPC(pose) {
+      const cv = $('npc-cv'); if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, 160, 260);
+      const skin = '#c8924a', dark = '#6b3a12', kilt = 'rgba(240,228,180,.92)',
+        collar = '#c8922a', gold = '#f5c040', eye = '#2a1a06';
+      let headTilt = 0, armRaise = 0, bodyLean = 0;
+      if (pose === 'point') { armRaise = -30; bodyLean = 4; }
+      if (pose === 'think') { headTilt = 8; }
+      if (pose === 'gesture') { armRaise = -18; bodyLean = -3; }
+      if (pose === 'bow') { headTilt = 22; bodyLean = 10; }
+      const cx = 80 + bodyLean;
+      ctx.fillStyle = skin;
+      ctx.beginPath(); ctx.moveTo(cx - 14, 190); ctx.lineTo(cx - 4, 190); ctx.lineTo(cx - 4, 248); ctx.lineTo(cx - 16, 248); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + 4, 190); ctx.lineTo(cx + 14, 190); ctx.lineTo(cx + 16, 248); ctx.lineTo(cx + 4, 248); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = dark; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx - 18, 247); ctx.lineTo(cx - 12, 250); ctx.lineTo(cx - 4, 247); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + 4, 247); ctx.lineTo(cx + 13, 250); ctx.lineTo(cx + 18, 247); ctx.stroke();
+      ctx.fillStyle = kilt; ctx.beginPath(); ctx.moveTo(cx - 18, 140); ctx.lineTo(cx + 18, 140); ctx.lineTo(cx + 20, 194); ctx.lineTo(cx - 20, 194); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
+      for (let k = -12; k <= 12; k += 6) { ctx.beginPath(); ctx.moveTo(cx + k, 140); ctx.lineTo(cx + k * 1.05, 194); ctx.stroke(); }
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.moveTo(cx - 18, 90); ctx.lineTo(cx + 18, 90); ctx.lineTo(cx + 16, 142); ctx.lineTo(cx - 16, 142); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = collar; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(cx, 100, 17, Math.PI * .1, Math.PI * .9); ctx.stroke();
+      ctx.strokeStyle = gold; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, 100, 17, Math.PI * .1, Math.PI * .9); ctx.stroke();
+      ctx.fillStyle = gold;
+      for (let b = 0; b < 7; b++) { const ba = Math.PI * .1 + b * (Math.PI * .8 / 6); ctx.beginPath(); ctx.arc(cx + Math.cos(ba) * 17, 100 + Math.sin(ba) * 17, 2.5, 0, Math.PI * 2); ctx.fill(); }
+      ctx.save(); ctx.translate(cx + 18, 108); ctx.rotate(armRaise * Math.PI / 180);
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 0, 8, 28, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(4, 46, 6, 22, .2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(6, 68, 7, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(cx + 28, 108); ctx.rotate(-armRaise * .6 * Math.PI / 180);
+      ctx.strokeStyle = dark; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, -80); ctx.lineTo(0, 140); ctx.stroke();
+      ctx.strokeStyle = gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -80); ctx.quadraticCurveTo(-12, -100, -8, -118); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -60, 4, 0, Math.PI * 2); ctx.strokeStyle = gold; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(cx - 18, 108); ctx.rotate(8 * Math.PI / 180);
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 0, 7, 26, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-3, 44, 5, 20, -.15, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-4, 64, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(cx, 84, 9, 12, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(cx, 62); ctx.rotate(headTilt * Math.PI / 180);
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 0, 22, 28, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(180,120,50,.35)'; ctx.beginPath(); ctx.ellipse(-4, -10, 10, 8, -.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = eye; ctx.beginPath(); ctx.ellipse(-9, 2, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9, 2, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f5e8cc'; ctx.beginPath(); ctx.ellipse(-9, 1.5, 3.5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9, 1.5, 3.5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = eye; ctx.beginPath(); ctx.arc(-9, 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = dark; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-16, 2); ctx.lineTo(-4, 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4, 2); ctx.lineTo(16, 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(100,50,10,.44)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, 4); ctx.quadraticCurveTo(5, 12, 3, 14); ctx.stroke();
+      ctx.strokeStyle = dark; ctx.lineWidth = 1.8;
+      if (pose === 'bow' || pose === 'think') { ctx.beginPath(); ctx.moveTo(-7, 20); ctx.quadraticCurveTo(0, 21, 7, 20); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(-8, 19); ctx.quadraticCurveTo(0, 24, 8, 19); ctx.stroke(); }
+      ctx.strokeStyle = gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-20, -8); ctx.lineTo(20, -8); ctx.stroke();
+      ctx.fillStyle = gold; ctx.beginPath(); ctx.ellipse(0, -18, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(-22, 5, 5, 8, .2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(-24, 8, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      const grad = ctx.createRadialGradient(cx, 252, 2, cx, 252, 28);
+      grad.addColorStop(0, 'rgba(245,160,30,.22)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(cx, 252, 28, 10, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ── Main loop ─────────────────────────────────────────────────────
+    let lastT = 0, flTick = 0;
+
+    function loop(t) {
+      requestAnimationFrame(loop);
+      const dt = Math.min((t - lastT) * .001, .05); lastT = t;
+
+      const W = G.W;
+      if (G.phase === 'corridor' && W) {
+        moveCam(dt, W.cBound);
+        const pz = cam.position.z;
+        W.panels.forEach(p => { if (!p.hit && Math.abs(pz - p.z) < 6.0) G.trigPanel(p); });
+        if (pz <= W.cZ1 - .4) G.enterArena();
+      } else if (G.phase === 'arena' && W) {
+        moveCam(dt, W.aBound);
+        clampArena(W.aZ);
+      }
+
+      flTick += dt;
+      if (flTick > .06 && W) {
+        flTick = 0;
+        const sc = .82 + Math.sin(t * .011) * .2 + (Math.random() - .5) * .1;
+        TORCH_LIGHTS.forEach((l, k) => {
+          if (l.visible) l.intensity = 2.4 + Math.sin(t * .009 + k * 1.8) * .8 + (Math.random() - .5) * .28;
+        });
+        if (W.iFlame) {
+          W.cFlames.forEach(f => {
+            DM.position.set(f.x, f.y + Math.sin(t * .013 + f.x) * .04, f.z);
+            DM.scale.setScalar(sc); DM.updateMatrix(); W.iFlame.setMatrixAt(f.i, DM.matrix);
+          });
+          W.iFlame.instanceMatrix.needsUpdate = true;
+        }
+        if (W.iAF) {
+          W.aFlames.forEach(f => {
+            DM.position.set(f.x, f.y + Math.sin(t * .014 + f.z) * .04, f.z);
+            DM.scale.setScalar(.8 + Math.sin(t * .016 + f.x) * .2); DM.updateMatrix(); W.iAF.setMatrixAt(f.i, DM.matrix);
+          });
+          W.iAF.instanceMatrix.needsUpdate = true;
+        }
+      }
+
+      drawGun(t);
+      renderer.render(scene, cam);
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────
+    function startGame() {
+      if (!PTEX) { console.warn('Textures not ready yet'); return; }
+      initAudio();
+      if (window.matchMedia("(pointer: coarse)").matches || /Mobi|Android/i.test(navigator.userAgent)) {
+        let el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => { });
+      }
+      TITLE.classList.add('gone'); alive = true;
+      LOCKHINT.classList.add('show'); RES.begin(); G.start();
+    }
+
+    $('enter-btn').addEventListener('click', startGame);
+    $('how-btn').addEventListener('click', () => showTutorial(true));
+
+    document.fonts.ready.then(() => {
+      const tc = document.createElement('canvas').getContext('2d');
+      tc.font = '40px "Noto Sans Egyptian Hieroglyphs",serif'; tc.fillText(GLYPHS[0].ch, 0, 40);
+
+      PTEX = GLYPHS.map((_, i) => {
+        const S = 200, cv = document.createElement('canvas'); cv.width = cv.height = S;
+        drawTile(cv.getContext('2d'), S, i, false);
+        const tex = new THREE.CanvasTexture(cv); tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; return tex;
+      });
+      GTEX = GLYPHS.map((_, i) => {
+        const S = 200, cv = document.createElement('canvas'); cv.width = cv.height = S;
+        drawTile(cv.getContext('2d'), S, i, true);
+        const tex = new THREE.CanvasTexture(cv); tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; return tex;
+      });
+      PMAT = PTEX.map(t => new THREE.MeshBasicMaterial({ map: t }));
+      GMAT = GTEX.map(t => new THREE.MeshBasicMaterial({ map: t }));
+
+      const eb = $('enter-btn'), hb = $('how-btn');
+      eb.disabled = false; eb.innerHTML = '&#9654;&nbsp; ENTER THE RUINS';
+      hb.disabled = false;
+    });
+
+    requestAnimationFrame(loop);
+  </script>
 </body>
+
 </html>
